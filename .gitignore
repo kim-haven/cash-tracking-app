@@ -16,8 +16,6 @@ dist-ssr
 
 # Local env/config
 *.local
-.env
-.env.*
 !.env.example
 
 # Cache
@@ -45,3 +43,4 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+config.bat
