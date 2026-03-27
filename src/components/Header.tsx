@@ -64,29 +64,30 @@ const Header: React.FC = () => {
             A
           </div>
 
-          {/* User dropdown */}
-          {userDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden z-30 transition-all duration-200">
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                onClick={() => setUserDropdownOpen(false)}
-              >
-                Profile
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                onClick={() => setUserDropdownOpen(false)}
-              >
-                Settings
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                onClick={() => setUserDropdownOpen(false)}
-              >
-                Logout
-              </button>
-            </div>
-          )}
+            {/* User dropdown */}
+            {userDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden z-30 transition-all duration-200">
+                
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="text-gray-700 font-medium">John Doe</div>
+                  <div className="text-gray-400 text-xs lowercase">admin</div>
+                </div>
+                
+
+                <button
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  onClick={() => setUserDropdownOpen(false)}
+                >
+                  Profile
+                </button>
+                <button
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                  onClick={() => setUserDropdownOpen(false)}
+                >
+                  Logout
+                </button>
+              </div>
+            )}
         </div>
       </div>
     </div>

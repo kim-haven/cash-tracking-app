@@ -44,7 +44,7 @@ const UpdateChecker: React.FC = () => {
       {import.meta.env.DEV && (
         <button
           onClick={() => setHasUpdate(true)}
-          className="fixed bottom-4 left-4 bg-red-500 text-white px-4 py-2 rounded-lg z-50 shadow-lg hover:bg-red-600"
+          className="fixed bottom-4 left-4 bg-red-500 text-white px-4 py-2 rounded-lg z-50 shadow-lg hover:bg-red-600 hidden"
         >
           Trigger Update UI
         </button>

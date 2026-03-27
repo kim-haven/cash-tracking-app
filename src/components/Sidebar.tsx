@@ -5,6 +5,7 @@ import {
   Users,
   Settings,
   Wallet,
+  Calculator,
   CreditCard,
   Landmark,
   Receipt,
@@ -38,6 +39,18 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
   const navLinkBase =
     "flex items-center gap-3 px-4 py-3 rounded-lg transition font-medium";
+  const [isCashDeskOpen, setIsCashDeskOpen] = useState(false);
+  const [cashDeskForm, setCashDeskForm] = useState({
+    cash1000: "",
+    cash500: "",
+    cash100: "",
+    cash50: "",
+    posTerminalSales: "",
+    posRefunds: "",
+    posCashBack: "",
+    tips: "",
+    notes: "",
+  });
 
   const groups: SidebarEntry[] = useMemo(
     () => [
@@ -122,9 +135,10 @@ const Sidebar: React.FC = () => {
   }, [openGroup]);
 
   return (
-    <div className="bg-gray-900 text-gray-300 h-screen shadow-xl border-r border-gray-800 flex flex-col">
+    <>
+      <div className="bg-gray-900 text-gray-300 h-screen shadow-xl border-r border-gray-800 flex flex-col">
       {/* Header */}
-      <div className="p-6 text-white text-xl font-bold flex items-center gap-3 flex-shrink-0">
+      <div className="p-6 text-white text-xl font-bold flex items-center gap-3 shrink-0">
         <Shield size={20} />
         <span>Admin Panel</span>
       </div>
@@ -221,9 +235,121 @@ const Sidebar: React.FC = () => {
               </div>
             );
           })}
+
+          <button
+            type="button"
+            onClick={() => setIsCashDeskOpen(true)}
+            className="cursor-pointer mt-2 w-full rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-3 text-left text-emerald-100 shadow-sm transition-all hover:bg-emerald-500/25 hover:shadow-md active:scale-[0.99]"
+          >
+            <span className="flex items-center gap-3 text-sm font-semibold">
+              <Calculator size={18} />
+              Cash Desk
+            </span>
+            <span className="mt-1 block text-xs text-emerald-200/80">
+              Open cash entry form
+            </span>
+          </button>
         </nav>
       </div>
-    </div>
+      </div>
+
+      {isCashDeskOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">Cash Desk Entry</h3>
+              <button
+                type="button"
+                onClick={() => setIsCashDeskOpen(false)}
+                className="rounded-md px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <input
+                type="number"
+                placeholder="1000 denomination amount"
+                value={cashDeskForm.cash1000}
+                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, cash1000: e.target.value }))}
+              />
+              <input
+                type="number"
+                placeholder="500 denomination amount"
+                value={cashDeskForm.cash500}
+                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, cash500: e.target.value }))}
+              />
+              <input
+                type="number"
+                placeholder="100 denomination amount"
+                value={cashDeskForm.cash100}
+                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, cash100: e.target.value }))}
+              />
+              <input
+                type="number"
+                placeholder="50 denomination amount"
+                value={cashDeskForm.cash50}
+                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, cash50: e.target.value }))}
+              />
+              <input
+                type="number"
+                placeholder="POS terminal sales"
+                value={cashDeskForm.posTerminalSales}
+                onChange={(e) =>
+                  setCashDeskForm((prev) => ({ ...prev, posTerminalSales: e.target.value }))
+                }
+              />
+              <input
+                type="number"
+                placeholder="POS refunds"
+                value={cashDeskForm.posRefunds}
+                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, posRefunds: e.target.value }))}
+              />
+              <input
+                type="number"
+                placeholder="POS cash back"
+                value={cashDeskForm.posCashBack}
+                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, posCashBack: e.target.value }))}
+              />
+              <input
+                type="number"
+                placeholder="Tips"
+                value={cashDeskForm.tips}
+                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, tips: e.target.value }))}
+              />
+            </div>
+
+            <textarea
+              className="mt-4 w-full"
+              rows={3}
+              placeholder="Notes"
+              value={cashDeskForm.notes}
+              onChange={(e) => setCashDeskForm((prev) => ({ ...prev, notes: e.target.value }))}
+            />
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsCashDeskOpen(false)}
+                className="rounded-lg bg-gray-200 px-4 py-2 text-sm hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCashDeskOpen(false);
+                }}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 };
 

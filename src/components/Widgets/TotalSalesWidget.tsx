@@ -1,7 +1,7 @@
 import React from "react";
 import { stats } from "../../data/mockData";
 
-const UserWidget: React.FC = () => {
+const TotalSalesWidget: React.FC = () => {
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
       <h3 className="text-sm text-gray-500">Total Sales</h3>
@@ -13,4 +13,4 @@ const UserWidget: React.FC = () => {
   );
 };
 
-export default UserWidget;
+export default TotalSalesWidget;
