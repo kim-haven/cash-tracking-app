@@ -11,7 +11,7 @@ const RegisterDrops: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
-  // Filter data
+  // Filter data based on search term
   const filteredData = registerDropsData.filter((item) => {
     const term = searchTerm.toLowerCase();
     return (
@@ -38,7 +38,16 @@ const RegisterDrops: React.FC = () => {
     {
       header: "Cash In",
       accessor: "cashIn",
-      render: (value) => <span className="font-medium">${value}</span>,
+      render: (value) => {
+        const n = typeof value === "number" ? value : Number(value);
+        const isNegative = n < 0;
+        const text = isNegative ? `-$${Math.abs(n)}` : `$${n}`;
+        return (
+          <span className={`font-medium ${isNegative ? "text-red-600" : "text-green-600"}`}>
+            {text}
+          </span>
+        );
+      },
       align: "right",
     },
     { header: "Initials", accessor: "initials" },
@@ -61,7 +70,11 @@ const RegisterDrops: React.FC = () => {
       <h2 className="text-lg font-semibold text-gray-700">Register Drops</h2>
 
       {/* Table */}
-      <TableLayout data={currentRows} columns={columns} emptyMessage="No register drops found" />
+      <TableLayout
+        data={currentRows}
+        columns={columns}
+        emptyMessage="No register drops found"
+      />
 
       {/* Pagination */}
       <Pagination

@@ -36,7 +36,7 @@ export type RegisterDropItem = {
       timeStart: "11:00",
       timeEnd: "19:00",
       action: "REG OPEN",
-      cashIn: 400,
+      cashIn: -100,
       initials: "EF",
       notes: "Overnight prep",
     },
