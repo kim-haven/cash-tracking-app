@@ -48,176 +48,8 @@ const RegisterDrops: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
-  const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState<ToastState>(null);
-
-  const [timeOutOpen, setTimeOutOpen] = useState(false);
-  const [timeOutRow, setTimeOutRow] = useState<RegisterDropItem | null>(null);
-  const [timeOutValue, setTimeOutValue] = useState("");
-  const [timeOutError, setTimeOutError] = useState<string | null>(null);
-  const [timeOutSaving, setTimeOutSaving] = useState(false);
-
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(
-    () => new Set()
-  );
-  const [bulkTimeOutOpen, setBulkTimeOutOpen] = useState(false);
-  const [bulkTimeOutValue, setBulkTimeOutValue] = useState("");
-  const [bulkTimeOutError, setBulkTimeOutError] = useState<string | null>(null);
-  const [bulkTimeOutSaving, setBulkTimeOutSaving] = useState(false);
-
-  const refreshList = useCallback(async () => {
-    setLoadError(null);
-    try {
-      const rows = await fetchAllRegisterDrops();
-      setItems(rows);
-    } catch (err: unknown) {
-      setLoadError(
-        err instanceof Error ? err.message : "Failed to load register drops"
-      );
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setLoadError(null);
-    fetchAllRegisterDrops()
-      .then((rows) => {
-        if (!cancelled) setItems(rows);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setLoadError(
-            err instanceof Error ? err.message : "Failed to load register drops"
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (toast === null) return;
-    const id = window.setTimeout(() => setToast(null), 4500);
-    return () => window.clearTimeout(id);
-  }, [toast]);
-
-  const openTimeOutForRow = useCallback((row: RegisterDropItem) => {
-    setTimeOutRow(row);
-    setTimeOutValue("");
-    setTimeOutError(null);
-    setTimeOutOpen(true);
-  }, []);
-
-  const handleTimeOutSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!timeOutRow) return;
-    if (!timeOutValue.trim()) {
-      setTimeOutError("Time out is required.");
-      return;
-    }
-    setTimeOutSaving(true);
-    setTimeOutError(null);
-    try {
-      await addRegisterDropTimeOut(timeOutRow.id, timeOutValue.trim());
-      setToast({ variant: "success", message: "Time out saved successfully." });
-      setTimeOutOpen(false);
-      setTimeOutRow(null);
-      setTimeOutValue("");
-      await refreshList();
-    } catch (err: unknown) {
-      setToast({
-        variant: "error",
-        message: "Failed to save time out.",
-      });
-      setTimeOutError(
-        err instanceof Error ? err.message : "Could not save time out."
-      );
-    } finally {
-      setTimeOutSaving(false);
-    }
-  };
-
-  const openAddModal = () => {
-    setForm(emptyForm());
-    setSubmitError(null);
-    setAddOpen(true);
-  };
-
-  const handleCreateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitError(null);
-
-    const register = form.register.trim();
-    const action = form.action.trim();
-    const initials = form.initials.trim();
-    const cashParsed = Number.parseFloat(form.cashIn);
-
-    if (!form.date) {
-      setSubmitError("Date is required.");
-      return;
-    }
-    if (!form.timeStart.trim()) {
-      setSubmitError("Time start is required.");
-      return;
-    }
-    if (!register) {
-      setSubmitError("Register is required.");
-      return;
-    }
-    if (!action) {
-      setSubmitError("Action is required.");
-      return;
-    }
-    if (!initials) {
-      setSubmitError("Initials are required.");
-      return;
-    }
-    if (form.cashIn.trim() === "" || Number.isNaN(cashParsed)) {
-      setSubmitError("Cash In must be a valid number.");
-      return;
-    }
-
-    const notesTrim = form.notes.trim();
-    const payload = {
-      date: form.date,
-      register,
-      time_start: form.timeStart,
-      time_end: form.timeEnd.trim() === "" ? null : form.timeEnd,
-      action,
-      cash_in: cashParsed,
-      initials,
-      notes: notesTrim === "" ? null : notesTrim,
-    };
-
-    setSubmitting(true);
-    try {
-      await createRegisterDrop(payload);
-      setToast({
-        variant: "success",
-        message: "Successfully added the new entry",
-      });
-      setAddOpen(false);
-      setForm(emptyForm());
-      await refreshList();
-    } catch (err: unknown) {
-      setToast({ variant: "error", message: "Failed to add the new entry" });
-      setSubmitError(
-        err instanceof Error ? err.message : "Could not save entry."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const filteredData = items.filter((item) => {
+  // Filter data based on search term
+  const filteredData = registerDropsData.filter((item) => {
     const term = searchTerm.toLowerCase();
     return (
       item.date.toLowerCase().includes(term) ||
@@ -260,11 +92,16 @@ const RegisterDrops: React.FC = () => {
     {
       header: "Cash In",
       accessor: "cashIn",
-      render: (value) => (
-        <span className="font-medium tabular-nums">
-          {cashFmt.format(Number(value))}
-        </span>
-      ),
+      render: (value) => {
+        const n = typeof value === "number" ? value : Number(value);
+        const isNegative = n < 0;
+        const text = isNegative ? `-$${Math.abs(n)}` : `$${n}`;
+        return (
+          <span className={`font-medium ${isNegative ? "text-red-600" : "text-green-600"}`}>
+            {text}
+          </span>
+        );
+      },
       align: "right",
     },
     { header: "Initials", accessor: "initials" },
@@ -711,6 +548,12 @@ const RegisterDrops: React.FC = () => {
                   </span>
                 </label>
               </div>
+      {/* Table */}
+      <TableLayout
+        data={currentRows}
+        columns={columns}
+        emptyMessage="No register drops found"
+      />
 
               <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
                 <button
