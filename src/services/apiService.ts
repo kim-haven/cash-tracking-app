@@ -1,5 +1,10 @@
 import { endpoints } from "../api/endpoints";
 import {
+  createDropSafe,
+  fetchDropSafes,
+  patchDropSafeCourier,
+} from "../api/dropSafeApi";
+import {
   addRegisterDropTimeOut,
   bulkRegisterDropTimeOut,
   createRegisterDrop,
@@ -21,4 +26,7 @@ export const apiService = {
   createRegisterDrop,
   addRegisterDropTimeOut,
   bulkRegisterDropTimeOut,
+  getDropSafes: fetchDropSafes,
+  createDropSafe,
+  patchDropSafeCourier,
 };
