@@ -9,13 +9,23 @@ const UpdateChecker: React.FC = () => {
   const checkVersion = async () => {
     try {
       const res = await fetch(`/version.json?t=${Date.now()}`);
-      const data = await res.json();
+      if (!res.ok) return;
+
+      const text = await res.text();
+      const start = text.trimStart();
+      // Vite SPA fallback (and many 404s) return HTML starting with <!doctype
+      if (start.startsWith("<") || start === "") {
+        return;
+      }
+
+      const data = JSON.parse(text) as { version?: unknown };
+      if (typeof data.version !== "string") return;
 
       if (data.version !== CURRENT_VERSION) {
         setHasUpdate(true);
       }
-    } catch (err) {
-      console.error("Version check failed", err);
+    } catch {
+      /* Invalid JSON or network — skip quietly */
     }
   };
 
