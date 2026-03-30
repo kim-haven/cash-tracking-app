@@ -1,4 +1,11 @@
 import { endpoints } from "../api/endpoints";
+import {
+  addRegisterDropTimeOut,
+  bulkRegisterDropTimeOut,
+  createRegisterDrop,
+  fetchAllRegisterDrops,
+  fetchRegisterDropsPage,
+} from "../api/registerDropsApi";
 
 export const apiService = {
   getUsers: async () => {
@@ -9,4 +16,9 @@ export const apiService = {
     const res = await fetch(endpoints.stats);
     return res.json();
   },
+  getRegisterDropsPage: fetchRegisterDropsPage,
+  getRegisterDropsAll: fetchAllRegisterDrops,
+  createRegisterDrop,
+  addRegisterDropTimeOut,
+  bulkRegisterDropTimeOut,
 };

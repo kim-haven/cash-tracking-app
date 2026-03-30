@@ -16,7 +16,7 @@ const SearchBar: React.FC<SearchInputProps> = ({
 }) => {
   return (
     <div
-      className={`flex items-center bg-white px-3 py-2 rounded-lg w-80 border border-gray-200 shadow-sm focus-within:ring-2 focus-within:ring-blue-300 ${className}`}
+      className={`flex min-w-0 w-full max-w-sm items-center rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-300 sm:w-80 sm:max-w-none ${className}`}
     >
       <Search size={16} className="text-gray-400" />
       <input
