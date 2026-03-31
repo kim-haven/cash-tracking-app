@@ -1,4 +1,4 @@
-import { controllers } from "./controllers";
+import { controllers } from "./Employees";
 
 type DayData = {
   date: string;
