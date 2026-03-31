@@ -16,5 +16,16 @@ export default defineConfig(({ mode }) => {
         env.CASH_TRACKING_APP_API ?? ''
       ),
     },
+    server: {
+      proxy: {
+        '/api': {
+          target: env.CASH_TRACKING_APP_API ?? 'http://127.0.0.1:8000',
+          changeOrigin: true,
+          secure: false,
+          // allow Laravel session cookies to work on the Vite origin
+          cookieDomainRewrite: '',
+        },
+      },
+    },
   }
 })

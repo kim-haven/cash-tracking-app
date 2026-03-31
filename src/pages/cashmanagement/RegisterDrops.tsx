@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ClockPlus } from "lucide-react";
+import { ClockPlus, Pencil, Trash2 } from "lucide-react";
 import TableLayout from "../../components/TableLayout";
 import type { Column } from "../../components/TableLayout";
 import SearchBar from "../../components/SearchBar";
@@ -9,8 +9,10 @@ import {
   addRegisterDropTimeOut,
   bulkRegisterDropTimeOut,
   createRegisterDrop,
+  deleteRegisterDrop,
   fetchAllRegisterDrops,
   formatTimeInputForBulkTimeOutApi,
+  updateRegisterDrop,
 } from "../../api/registerDropsApi";
 
 type FormState = {
@@ -67,6 +69,18 @@ const RegisterDrops: React.FC = () => {
   const [bulkTimeOutValue, setBulkTimeOutValue] = useState("");
   const [bulkTimeOutError, setBulkTimeOutError] = useState<string | null>(null);
   const [bulkTimeOutSaving, setBulkTimeOutSaving] = useState(false);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editRow, setEditRow] = useState<RegisterDropItem | null>(null);
+  const [editForm, setEditForm] = useState<FormState>(emptyForm);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteRow, setDeleteRow] = useState<RegisterDropItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
 
   const refreshList = useCallback(async () => {
     setLoadError(null);
@@ -149,6 +163,115 @@ const RegisterDrops: React.FC = () => {
     setForm(emptyForm());
     setSubmitError(null);
     setAddOpen(true);
+  };
+
+  const openEditModal = (row: RegisterDropItem) => {
+    setEditRow(row);
+    setEditError(null);
+    setEditForm({
+      date: row.dateValue,
+      register: row.register,
+      timeStart: row.timeStartValue,
+      timeEnd: row.timeEndValue,
+      action: row.action,
+      cashIn: row.cashInRaw,
+      initials: row.initials,
+      notes: row.notes ?? "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editRow) return;
+    setEditError(null);
+
+    const register = editForm.register.trim();
+    const action = editForm.action.trim();
+    const initials = editForm.initials.trim();
+    const cashParsed = Number.parseFloat(editForm.cashIn);
+
+    if (!editForm.date) {
+      setEditError("Date is required.");
+      return;
+    }
+    if (!editForm.timeStart.trim()) {
+      setEditError("Time start is required.");
+      return;
+    }
+    if (!register) {
+      setEditError("Register is required.");
+      return;
+    }
+    if (!action) {
+      setEditError("Action is required.");
+      return;
+    }
+    if (!initials) {
+      setEditError("Initials are required.");
+      return;
+    }
+    if (editForm.cashIn.trim() === "" || Number.isNaN(cashParsed)) {
+      setEditError("Cash In must be a valid number.");
+      return;
+    }
+
+    const notesTrim = editForm.notes.trim();
+    const payload = {
+      date: editForm.date,
+      register,
+      time_start: editForm.timeStart,
+      time_end: editForm.timeEnd.trim() === "" ? null : editForm.timeEnd,
+      action,
+      cash_in: cashParsed,
+      initials,
+      notes: notesTrim === "" ? null : notesTrim,
+    };
+
+    setEditSubmitting(true);
+    try {
+      await updateRegisterDrop(editRow.id, payload);
+      setToast({ variant: "success", message: "Entry updated successfully." });
+      setEditOpen(false);
+      setEditRow(null);
+      await refreshList();
+    } catch (err: unknown) {
+      setToast({ variant: "error", message: "Failed to update entry." });
+      setEditError(err instanceof Error ? err.message : "Could not update entry.");
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const openDeleteModal = (row: RegisterDropItem) => {
+    setDeleteRow(row);
+    setDeleteError(null);
+    setDeleteReason("");
+    setDeleteOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteRow) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteRegisterDrop(deleteRow.id, deleteReason);
+      setToast({ variant: "success", message: "Entry deleted successfully." });
+      setDeleteOpen(false);
+      setDeleteRow(null);
+      setDeleteReason("");
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteRow.id);
+        return next;
+      });
+      await refreshList();
+    } catch (err: unknown) {
+      setToast({ variant: "error", message: "Failed to delete entry." });
+      setDeleteError(err instanceof Error ? err.message : "Could not delete entry.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -275,23 +398,42 @@ const RegisterDrops: React.FC = () => {
       align: "center",
       render: (_id, row) => {
         const hasEnd = String(row.timeEnd ?? "").trim() !== "";
-        if (hasEnd) {
-          return (
-            <span className="text-gray-300" aria-hidden>
-              —
-            </span>
-          );
-        }
         return (
-          <button
-            type="button"
-            onClick={() => openTimeOutForRow(row)}
-            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-blue-600 shadow-sm hover:bg-blue-50"
-            aria-label="Add time out"
-            title="Add time out"
-          >
-            <ClockPlus className="h-5 w-5" strokeWidth={2} />
-          </button>
+          <div className="inline-flex items-center justify-center gap-2">
+            {!hasEnd ? (
+              <button
+                type="button"
+                onClick={() => openTimeOutForRow(row)}
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-blue-600 shadow-sm hover:bg-blue-50"
+                aria-label="Add time out"
+                title="Add time out"
+              >
+                <ClockPlus className="h-5 w-5" strokeWidth={2} />
+              </button>
+            ) : (
+              <span className="text-gray-300" aria-hidden>
+                —
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => openEditModal(row)}
+              className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-700 shadow-sm hover:bg-gray-50"
+              aria-label="Update entry"
+              title="Update entry"
+            >
+              <Pencil className="h-5 w-5" strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              onClick={() => openDeleteModal(row)}
+              className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-white p-2 text-red-600 shadow-sm hover:bg-red-50"
+              aria-label="Delete entry"
+              title="Delete entry"
+            >
+              <Trash2 className="h-5 w-5" strokeWidth={2} />
+            </button>
+          </div>
         );
       },
     },
@@ -579,6 +721,217 @@ const RegisterDrops: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {editOpen && editRow && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="register-drop-edit-title"
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+            <h2
+              id="register-drop-edit-title"
+              className="text-lg font-semibold text-gray-800"
+            >
+              Update entry
+            </h2>
+
+            <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
+              {editError && (
+                <div
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                  role="alert"
+                >
+                  {editError}
+                </div>
+              )}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm text-gray-700 sm:col-span-2">
+                  Date
+                  <input
+                    type="date"
+                    className={inputClass}
+                    value={editForm.date}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, date: e.target.value }))
+                    }
+                  />
+                </label>
+                <label className="block text-sm text-gray-700 sm:col-span-2">
+                  Register
+                  <input
+                    type="text"
+                    className={inputClass}
+                    value={editForm.register}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, register: e.target.value }))
+                    }
+                  />
+                </label>
+                <label className="block text-sm text-gray-700">
+                  Time start
+                  <input
+                    type="time"
+                    className={inputClass}
+                    value={editForm.timeStart}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, timeStart: e.target.value }))
+                    }
+                  />
+                </label>
+                <label className="block text-sm text-gray-700">
+                  Time end
+                  <input
+                    type="time"
+                    className={inputClass}
+                    value={editForm.timeEnd}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, timeEnd: e.target.value }))
+                    }
+                  />
+                </label>
+                <label className="block text-sm text-gray-700 sm:col-span-2">
+                  Action
+                  <input
+                    type="text"
+                    className={inputClass}
+                    value={editForm.action}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, action: e.target.value }))
+                    }
+                  />
+                </label>
+                <label className="block text-sm text-gray-700">
+                  Cash In
+                  <input
+                    type="number"
+                    step="any"
+                    className={inputClass}
+                    value={editForm.cashIn}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, cashIn: e.target.value }))
+                    }
+                  />
+                </label>
+                <label className="block text-sm text-gray-700">
+                  Initials
+                  <input
+                    type="text"
+                    className={inputClass}
+                    value={editForm.initials}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        initials: e.target.value.toLowerCase(),
+                      }))
+                    }
+                  />
+                </label>
+                <label className="block text-sm text-gray-700 sm:col-span-2">
+                  Notes
+                  <textarea
+                    rows={2}
+                    className={`${inputClass} resize-y`}
+                    value={editForm.notes}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, notes: e.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+                <button
+                  type="button"
+                  disabled={editSubmitting}
+                  onClick={() => {
+                    setEditOpen(false);
+                    setEditRow(null);
+                    setEditError(null);
+                  }}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {editSubmitting ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deleteOpen && deleteRow && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="register-drop-delete-title"
+        >
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+            <h2
+              id="register-drop-delete-title"
+              className="text-lg font-semibold text-gray-800"
+            >
+              Delete entry
+            </h2>
+
+            {deleteError && (
+              <div
+                className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                role="alert"
+              >
+                {deleteError}
+              </div>
+            )}
+
+            <p className="mt-3 text-sm text-gray-600">
+              Reason is optional.
+            </p>
+
+            <label className="mt-3 block text-sm text-gray-700">
+              Reason
+              <textarea
+                rows={3}
+                className={`${inputClass} resize-y`}
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+              />
+            </label>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteRow(null);
+                  setDeleteError(null);
+                  setDeleteReason("");
+                }}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteConfirm}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}
