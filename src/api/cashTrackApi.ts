@@ -1,4 +1,5 @@
-const API_BASE = "http://127.0.0.1:8000/api/cashtrack/daily-summaries";
+const API_BASE = import.meta.env.VITE_CASH_ON_HANDS_API;
+
 
 export interface CashTrackItem {
   id: number;
