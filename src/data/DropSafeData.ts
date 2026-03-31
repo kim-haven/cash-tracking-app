@@ -10,6 +10,12 @@ export type DropSafeItem = {
   givenBy: string;
   receivedBy: string;
   amountReceived: number;
+  /** `YYYY-MM-DD` for edit forms */
+  preparedDateValue: string;
+  /** `HH:mm` for `<input type="time">` */
+  preparedTimeValue: string;
+  /** Original `prepared_amount` string from API for form prefill */
+  preparedAmountRaw: string;
   /** `YYYY-MM-DD` for edit forms; empty if no courier date */
   courierDateValue: string;
   /** `HH:mm` from API time for `<input type="time">` */

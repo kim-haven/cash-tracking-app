@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from "../config/apiBase";
+import { buildApiUrl } from "../config/apiBase";
 import type { DropSafeItem } from "../data/DropSafeData";
 
 export type DropSafeApiRow = {
@@ -84,6 +84,12 @@ export function mapDropSafeApiRow(row: DropSafeApiRow): DropSafeItem {
     givenBy: row.courier_given_by ?? "",
     receivedBy: row.courier_received_by ?? "",
     amountReceived: Number.parseFloat(row.courier_amount ?? "0"),
+    preparedDateValue: row.prepared_date,
+    preparedTimeValue:
+      row.prepared_time != null && row.prepared_time.length >= 5
+        ? row.prepared_time.slice(0, 5)
+        : "",
+    preparedAmountRaw: row.prepared_amount,
     courierDateValue: row.courier_date ?? "",
     courierTimeValue:
       ct != null && ct.length >= 5 ? ct.slice(0, 5) : "",
@@ -131,12 +137,9 @@ export async function patchDropSafeCourier(
   id: number,
   payload: DropSafeCourierPatchPayload
 ): Promise<unknown> {
-  const base = getApiBaseUrl();
-  if (!base) {
-    throw new Error("CASH_TRACKING_APP_API is not set in .env");
-  }
-  const res = await fetch(`${base}/api/drop-safes/${id}`, {
+  const res = await fetch(buildApiUrl(`/api/drop-safes/${id}`), {
     method: "PATCH",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -162,11 +165,9 @@ export async function patchDropSafeCourier(
 }
 
 export async function fetchDropSafes(): Promise<DropSafeItem[]> {
-  const base = getApiBaseUrl();
-  if (!base) {
-    throw new Error("CASH_TRACKING_APP_API is not set in .env");
-  }
-  const res = await fetch(`${base}/api/drop-safes`);
+  const res = await fetch(buildApiUrl("/api/drop-safes"), {
+    credentials: "include",
+  });
   if (!res.ok) {
     throw new Error(`Drop safes request failed (${res.status})`);
   }
@@ -181,12 +182,9 @@ export async function fetchDropSafes(): Promise<DropSafeItem[]> {
 export async function createDropSafe(
   payload: DropSafeCreatePayload
 ): Promise<unknown> {
-  const base = getApiBaseUrl();
-  if (!base) {
-    throw new Error("CASH_TRACKING_APP_API is not set in .env");
-  }
-  const res = await fetch(`${base}/api/drop-safes`, {
+  const res = await fetch(buildApiUrl("/api/drop-safes"), {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -209,6 +207,72 @@ export async function createDropSafe(
     throw new Error(msg);
   }
   return res.json();
+}
+
+export async function updateDropSafe(
+  id: number,
+  payload: DropSafeCreatePayload
+): Promise<unknown> {
+  const res = await fetch(buildApiUrl(`/api/drop-safes/${id}`), {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let msg = `Update failed (${res.status})`;
+    try {
+      const errJson: Record<string, unknown> = await res.json();
+      if (typeof errJson.message === "string") msg = errJson.message;
+      const errors = errJson.errors;
+      if (errors && typeof errors === "object" && errors !== null) {
+        const first = Object.values(errors).flat()[0];
+        if (typeof first === "string") msg = first;
+      }
+    } catch {
+      /* keep default */
+    }
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function deleteDropSafe(
+  id: number,
+  deleteReason?: string
+): Promise<unknown> {
+  const res = await fetch(buildApiUrl(`/api/drop-safes/${id}`), {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      deleted_by: 1,
+      ...(deleteReason?.trim() ? { delete_reason: deleteReason.trim() } : {}),
+    }),
+  });
+  if (!res.ok) {
+    let msg = `Delete failed (${res.status})`;
+    if (res.status !== 401) {
+      try {
+        const errJson: Record<string, unknown> = await res.json();
+        if (typeof errJson.message === "string") msg = errJson.message;
+      } catch {
+        /* keep default */
+      }
+    }
+    throw new Error(msg);
+  }
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 export function buildDropSafePayloadFromForm(form: {
