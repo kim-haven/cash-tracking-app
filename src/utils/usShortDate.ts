@@ -16,6 +16,12 @@ export function formatUsShortDate(value: string): string {
   return trimmed;
 }
 
+/** Local today as YYYY-MM-DD for `<input type="date" max="...">` (no future dates). */
+export function todayDateInputMax(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** Normalize API date for <input type="date" /> (YYYY-MM-DD). */
 export function toDateInputValue(value: string): string {
   const trimmed = String(value ?? "").trim();
