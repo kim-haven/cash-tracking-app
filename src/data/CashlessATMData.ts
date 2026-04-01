@@ -1,31 +1,21 @@
-
-export const cashlessATMData = [
-    {
-      editedDate: "2026-03-28",
-      date: "2026-03-28",
-      terminal: "T1",
-      debitTotalDispensed: 1200,
-      totalTips: 50,
-      debitTotalSales: 1500,
-      totalCashBack: 100,
-      blazeCashlessSales: 1400,
-      totalCashlessATMChange: 1100,
-      totalSalesDifference: 100,
-      cashbackDifference: 0,
-      notes: "Balanced",
-    },
-    {
-      editedDate: "2026-03-28",
-      date: "2026-03-28",
-      terminal: "T2",
-      debitTotalDispensed: 800,
-      totalTips: 30,
-      debitTotalSales: 1000,
-      totalCashBack: 50,
-      blazeCashlessSales: 900,
-      totalCashlessATMChange: 850,
-      totalSalesDifference: 50,
-      cashbackDifference: 0,
-      notes: "Short $50",
-    },
-  ];
+/** UI model for Cashless ATM Summary (mapped from API). */
+export type CashlessATMItem = {
+  id: number;
+  /** Display date (locale). */
+  date: string;
+  /** YYYY-MM-DD from API for filtering/search. */
+  dateValue: string;
+  employee: string;
+  terminal: string;
+  debitTotalDispensed: number;
+  totalTips: number;
+  debitTotalSales: number;
+  totalCashBack: number;
+  blazeCashlessSales: number;
+  totalCashlessATMChange: number;
+  /** Blaze cashless sales − debit total sales (computed for table only). */
+  totalSalesDifference: number;
+  /** Total cashless ATM change on Blaze − total cash back on receipt (computed). */
+  cashbackDifference: number;
+  notes: string;
+};
