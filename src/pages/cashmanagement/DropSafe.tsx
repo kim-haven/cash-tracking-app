@@ -14,6 +14,7 @@ import {
   deleteDropSafe,
   updateDropSafe,
 } from "../../api/dropSafeApi";
+import { todayDateInputMax } from "../../utils/usShortDate";
 
 type AddFormState = {
   bagNo: string;
@@ -563,6 +564,7 @@ const DropSafe: React.FC = () => {
                   Courier date
                   <input
                     type="date"
+                    max={todayDateInputMax()}
                     className={inputClass}
                     value={courierForm.courierDate}
                     onChange={(e) =>
@@ -699,6 +701,7 @@ const DropSafe: React.FC = () => {
                   Date prepared
                   <input
                     type="date"
+                    max={todayDateInputMax()}
                     className={inputClass}
                     value={editForm.preparedDate}
                     onChange={(e) =>
@@ -959,6 +962,7 @@ const DropSafe: React.FC = () => {
                   Date prepared
                   <input
                     type="date"
+                    max={todayDateInputMax()}
                     className={inputClass}
                     value={addForm.preparedDate}
                     onChange={(e) =>
@@ -1018,6 +1022,7 @@ const DropSafe: React.FC = () => {
                   Courier date
                   <input
                     type="date"
+                    max={todayDateInputMax()}
                     className={inputClass}
                     value={addForm.courierDate}
                     onChange={(e) =>

@@ -10,7 +10,11 @@ import {
   updateExpense,
   deleteExpense,
 } from "../../api/expensesApi";
-import { formatUsShortDate, toDateInputValue } from "../../utils/usShortDate";
+import {
+  formatUsShortDate,
+  todayDateInputMax,
+  toDateInputValue,
+} from "../../utils/usShortDate";
 
 interface ExpenseItem {
   id: number;
@@ -370,6 +374,7 @@ const Expenses: React.FC = () => {
                   Date
                   <input
                     type="date"
+                    max={todayDateInputMax()}
                     className={inputClass}
                     value={form.date}
                     onChange={(e) =>

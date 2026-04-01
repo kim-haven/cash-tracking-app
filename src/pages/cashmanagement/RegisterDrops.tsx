@@ -14,6 +14,7 @@ import {
   formatTimeInputForBulkTimeOutApi,
   updateRegisterDrop,
 } from "../../api/registerDropsApi";
+import { todayDateInputMax } from "../../utils/usShortDate";
 
 type FormState = {
   date: string;
@@ -969,6 +970,7 @@ const RegisterDrops: React.FC = () => {
                   Date
                   <input
                     type="date"
+                    max={todayDateInputMax()}
                     className={inputClass}
                     value={form.date}
                     onChange={(e) =>
