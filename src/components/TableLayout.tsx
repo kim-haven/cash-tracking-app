@@ -1,4 +1,51 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, type ReactNode } from "react";
+
+function twoLineHeader(line1: string, line2: string): ReactNode {
+  return (
+    <span className="inline-block leading-snug">
+      <span className="block">{line1}</span>
+      <span className="block">{line2}</span>
+    </span>
+  );
+}
+
+/**
+ * Shortens wide headers: text after ":" on a second line, or a trailing "(…)" clause
+ * on a second line (e.g. "TOTAL CASH BACK" / "(ON RECEIPT)").
+ */
+function formatColumnHeader(header: string): ReactNode {
+  const colonIdx = header.indexOf(":");
+  if (colonIdx >= 0) {
+    const afterColon = header.slice(colonIdx + 1).trim();
+    if (afterColon) {
+      return twoLineHeader(header.slice(0, colonIdx + 1).trimEnd(), afterColon);
+    }
+  }
+
+  const parenMatch = header.match(/^(.*?)\s+(\([^)]+\))\s*$/);
+  if (parenMatch) {
+    const line1 = parenMatch[1].trim();
+    const line2 = parenMatch[2].trim();
+    if (line1 && line2) {
+      return twoLineHeader(line1, line2);
+    }
+  }
+
+  return header;
+}
+
+function headerUsesMultilineBreak(header: string): boolean {
+  const colonIdx = header.indexOf(":");
+  if (colonIdx >= 0 && header.slice(colonIdx + 1).trim().length > 0) {
+    return true;
+  }
+  const parenMatch = header.match(/^(.*?)\s+(\([^)]+\))\s*$/);
+  return !!(
+    parenMatch &&
+    parenMatch[1].trim().length > 0 &&
+    parenMatch[2].trim().length > 0
+  );
+}
 
 export type Column<T> = {
   header: string;
@@ -47,8 +94,8 @@ function Table<T extends object>({
   const colCount = columns.length + (rowSelection ? 1 : 0);
 
   return (
-    <div className="w-full overflow-x-auto bg-white rounded-2xl border border-gray-200 shadow-md">
-      <table className="w-full text-sm text-gray-700 border-collapse">
+    <div className="max-w-full min-w-0 w-full overflow-x-auto overscroll-x-contain bg-white rounded-2xl border border-gray-200 shadow-md">
+      <table className="w-full min-w-max text-sm text-gray-700 border-collapse table-auto">
         <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
           <tr>
             {rowSelection && (
@@ -63,20 +110,28 @@ function Table<T extends object>({
                 />
               </th>
             )}
-            {columns.map((col) => (
-              <th
-                key={`${String(col.accessor)}-${col.header}`}
-                className={`px-5 py-4 font-medium text-gray-600 uppercase tracking-wider text-left ${
-                  col.align === "center"
-                    ? "text-center"
-                    : col.align === "right"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
-                {col.header}
-              </th>
-            ))}
+            {columns.map((col) => {
+              const wrapMultiline = headerUsesMultilineBreak(col.header);
+              return (
+                <th
+                  key={`${String(col.accessor)}-${col.header}`}
+                  scope="col"
+                  title={col.header}
+                  aria-label={col.header}
+                  className={`px-5 py-4 align-top font-medium text-gray-600 uppercase tracking-wider ${
+                    wrapMultiline ? "whitespace-normal" : "whitespace-nowrap"
+                  } ${
+                    col.align === "center"
+                      ? "text-center"
+                      : col.align === "right"
+                      ? "text-right"
+                      : "text-left"
+                  }`}
+                >
+                  {formatColumnHeader(col.header)}
+                </th>
+              );
+            })}
           </tr>
         </thead>
 
