@@ -11,6 +11,8 @@ import {
   Receipt,
   Gift,
   Shield,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 type SidebarLinkEntry = {
@@ -179,6 +181,7 @@ const Sidebar: React.FC = () => {
                 <div
                   role="button"
                   tabIndex={0}
+                  aria-expanded={isOpen}
                   onClick={() =>
                     setOpenGroup((prev) =>
                       prev === entry.title ? null : entry.title
@@ -192,14 +195,29 @@ const Sidebar: React.FC = () => {
                       );
                     }
                   }}
-                  className={`${navLinkBase} cursor-pointer ${
+                  className={`${navLinkBase} cursor-pointer justify-between ${
                     isOpen
                       ? "bg-gray-800 text-white font-semibold shadow-md"
                       : "hover:bg-gray-800"
                   }`}
                 >
-                  {GroupIcon ? <GroupIcon size={18} /> : null}
-                  <span>{entry.title}</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-3">
+                    {GroupIcon ? <GroupIcon size={18} className="shrink-0" /> : null}
+                    <span className="truncate">{entry.title}</span>
+                  </span>
+                  {isOpen ? (
+                    <ChevronUp
+                      size={18}
+                      className="shrink-0 opacity-70"
+                      aria-hidden
+                    />
+                  ) : (
+                    <ChevronDown
+                      size={18}
+                      className="shrink-0 opacity-70"
+                      aria-hidden
+                    />
+                  )}
                 </div>
 
                 {/* Sub-items with smooth transition */}
