@@ -146,6 +146,21 @@ export async function fetchAllCashlessAtmEntries(
   return rows.map(mapCashlessAtmApiRow);
 }
 
+/** Σ `debit_total_sales` grouped by calendar date (Y-m-d); multiple entries per day summed. */
+export function aggregateDebitTotalSalesByDate(
+  items: CashlessATMItem[]
+): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const row of items) {
+    const raw = row.dateValue?.trim() ?? "";
+    if (!raw) continue;
+    const key = raw.length >= 10 ? raw.slice(0, 10) : raw;
+    const next = (map.get(key) ?? 0) + row.debitTotalSales;
+    map.set(key, next);
+  }
+  return map;
+}
+
 /** Body for POST / PUT/PATCH /api/cashless-atm-entries */
 export type CashlessAtmWritePayload = {
   date: string;
