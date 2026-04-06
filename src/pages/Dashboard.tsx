@@ -1,5 +1,5 @@
 import React from "react";
-import TotalSalesWidget from "../components/Widgets/TotalSalesWidget";
+import DepositWidget from "../components/Widgets/DepositWidget";
 import RevenueWidget from "../components/Widgets/RevenueWidget";
 import ExpenseWidget from "../components/Widgets/ExpensesWidget";
 import GraphChart from "../components/Charts/GraphChart";
@@ -11,7 +11,7 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-        <TotalSalesWidget />
+        <DepositWidget />
         <ExpenseWidget />
         <RevenueWidget />
       </div>

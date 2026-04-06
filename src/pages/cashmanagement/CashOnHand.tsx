@@ -328,22 +328,18 @@ const CashOnHand: React.FC = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
-        <SearchBar
-          value={searchTerm}
-          onChange={(val) => {
-            setSearchTerm(val);
-            setCurrentPage(1);
-          }}
-        />
-      </div>
-
       {/* Section title + date range */}
-      <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="shrink-0 text-lg font-semibold text-gray-700">
-          Daily Financial Summary
-        </h2>
+      <div className="flex flex-col items-center gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        {/* Search */}
+        <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+          <SearchBar
+            value={searchTerm}
+            onChange={(val) => {
+              setSearchTerm(val);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
         <label className="flex min-w-0 w-full flex-col gap-1 text-sm text-gray-600 sm:w-auto sm:max-w-md sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:self-end">
           <span className="shrink-0 whitespace-nowrap sm:text-right">
             Date range
