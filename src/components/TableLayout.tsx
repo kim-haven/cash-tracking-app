@@ -68,6 +68,8 @@ export type RowSelectionConfig<T> = {
 export type TableHeaderGroup = {
   label: string;
   colSpan: number;
+  /** Extra classes on the group `<th>` (e.g. background). */
+  headerClassName?: string;
 };
 
 type TableProps<T> = {
@@ -78,6 +80,13 @@ type TableProps<T> = {
   getRowKey?: (row: T, index: number) => React.Key;
   /** Optional first header tier (e.g. grouped column labels). */
   headerGroups?: TableHeaderGroup[];
+  /** Merged onto the outer scroll/card wrapper (e.g. `rounded-none border-0 shadow-none`). */
+  className?: string;
+  /**
+   * `auto` (default): `min-w-max` on the table (wide content can scroll horizontally).
+   * `stretch`: table fills the wrapper width (better for side-by-side narrow panes).
+   */
+  tableWidth?: "auto" | "stretch";
 };
 
 function Table<T extends object>({
@@ -87,6 +96,8 @@ function Table<T extends object>({
   rowSelection,
   getRowKey,
   headerGroups,
+  className: wrapperClassName,
+  tableWidth = "auto",
 }: TableProps<T>) {
   const headerSelectRef = useRef<HTMLInputElement>(null);
 
@@ -120,9 +131,16 @@ function Table<T extends object>({
   }
   const sectionDividerClass = "border-l-[3px] border-cyan-500";
 
+  const tableClass =
+    tableWidth === "stretch"
+      ? "w-full min-w-0 max-w-full text-sm text-gray-700 border-collapse table-auto"
+      : "w-full min-w-max text-sm text-gray-700 border-collapse table-auto";
+
   return (
-    <div className="max-w-full min-w-0 w-full overflow-x-auto overscroll-x-contain bg-white rounded-2xl border border-gray-200 shadow-md">
-      <table className="w-full min-w-max text-sm text-gray-700 border-collapse table-auto">
+    <div
+      className={`max-w-full min-w-0 w-full overflow-x-auto overscroll-x-contain bg-white rounded-2xl border border-gray-200 shadow-md ${wrapperClassName ?? ""}`}
+    >
+      <table className={tableClass}>
         <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
           {groupsValid ? (
             <>
@@ -144,12 +162,13 @@ function Table<T extends object>({
                 )}
                 {headerGroups!.map((group, gi) => (
                   <th
-                    key={group.label}
+                    key={`hg-${gi}-${group.colSpan}`}
                     colSpan={group.colSpan}
                     scope="colgroup"
-                    className={`border-b border-gray-200 px-5 py-3 text-center text-sm font-semibold tracking-wide text-gray-800 ${
+                    title={group.label.trim() ? group.label : undefined}
+                    className={`border-b border-gray-200 px-5 py-3 text-center text-sm font-semibold tracking-wide text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis ${
                       gi > 0 ? sectionDividerClass : ""
-                    }`}
+                    } ${group.headerClassName ?? ""}`}
                   >
                     {group.label}
                   </th>
