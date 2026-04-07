@@ -1,8 +1,13 @@
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam, toRequestUrl } from "./storeQuery";
+
 const BASE_URL = import.meta.env.VITE_EXPENSES_API;
 
 // 🔹 GET ALL
-export async function fetchAllExpenses() {
-  const res = await fetch(BASE_URL);
+export async function fetchAllExpenses(storeId?: number | null) {
+  const url = toRequestUrl(BASE_URL);
+  applyStoreIdParam(url, storeId ?? null);
+  const res = await authorizedFetch(url.toString());
 
   if (!res.ok) {
     throw new Error("Failed to fetch expenses");
@@ -16,7 +21,7 @@ export async function fetchAllExpenses() {
 
 // 🔹 CREATE
 export async function createExpense(payload: any) {
-  const res = await fetch(BASE_URL, {
+  const res = await authorizedFetch(BASE_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,7 +39,7 @@ export async function createExpense(payload: any) {
 
 // 🔹 UPDATE
 export async function updateExpense(id: number, payload: unknown) {
-  const res = await fetch(`${BASE_URL}/${id}`, {
+  const res = await authorizedFetch(`${BASE_URL}/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -58,7 +63,7 @@ export async function updateExpense(id: number, payload: unknown) {
 
 // 🔹 DELETE
 export async function deleteExpense(id: number) {
-  const res = await fetch(`${BASE_URL}/${id}`, {
+  const res = await authorizedFetch(`${BASE_URL}/${id}`, {
     method: "DELETE",
   });
 

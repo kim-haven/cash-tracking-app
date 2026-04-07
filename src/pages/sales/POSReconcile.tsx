@@ -16,6 +16,7 @@ import {
   type CashTrackItem,
 } from "../../api/cashTrackApi";
 import { formatUsShortDate, todayDateInputMax } from "../../utils/usShortDate";
+import { useStore } from "../../context/StoreContext";
 
 /** Match daily-summary rows on calendar date (YYYY-MM-DD prefix). Same as Cash on Hand. */
 function ymdKeyFromDateString(dateStr: string): string | null {
@@ -77,11 +78,15 @@ function cashVsCashlessAtmDifferenceComputed(
   );
 }
 
-function formToCreatePayload(form: POSReconcileFormState): CashReconciliationPayload {
+function formToCreatePayload(
+  form: POSReconcileFormState,
+  storeId: number
+): CashReconciliationPayload {
   const cashIn = Number(form.cashIn || 0);
   const cashRefunds = Number(form.cashRefunds || 0);
   const cashlessAtmCashBack = Number(form.cashlessAtmCashBack || 0);
   return {
+    storeId,
     date: form.date,
     controller: form.controller.trim(),
     cashIn,
@@ -98,6 +103,7 @@ function formToCreatePayload(form: POSReconcileFormState): CashReconciliationPay
 }
 
 const POSReconcile: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const [items, setItems] = useState<CashReconciliationItem[]>([]);
   const [dailySummaries, setDailySummaries] = useState<CashTrackItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,8 +133,10 @@ const POSReconcile: React.FC = () => {
     setLoadError(null);
 
     Promise.all([
-      fetchAllCashReconciliations(),
-      fetchDailySummaries().catch(() => [] as CashTrackItem[]),
+      fetchAllCashReconciliations(selectedPhysicalStoreId),
+      fetchDailySummaries(selectedPhysicalStoreId).catch(
+        () => [] as CashTrackItem[]
+      ),
     ])
       .then(([rows, summaries]) => {
         if (!cancelled) {
@@ -150,7 +158,7 @@ const POSReconcile: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   /** Per calendar day: register drops from daily financial summary (cash on hand API). */
   const registerDropsByDate = useMemo(() => {
@@ -214,7 +222,7 @@ const POSReconcile: React.FC = () => {
         notes: notesDraft.trim(),
       });
       closeNotesModal();
-      const refreshed = await fetchAllCashReconciliations();
+      const refreshed = await fetchAllCashReconciliations(selectedPhysicalStoreId);
       setItems(refreshed);
     } catch (err: unknown) {
       setNotesError(
@@ -407,14 +415,22 @@ const POSReconcile: React.FC = () => {
       setSubmitError("Controller is required.");
       return;
     }
+    if (selectedPhysicalStoreId === null) {
+      setSubmitError("Select a specific store in the header to add a reconciliation.");
+      return;
+    }
     try {
       setSubmitting(true);
-      await createCashReconciliation(formToCreatePayload(form));
+      await createCashReconciliation(
+        formToCreatePayload(form, selectedPhysicalStoreId)
+      );
       closeAddModal();
       setForm(emptyPOSReconcileForm());
       const [refreshed, summaries] = await Promise.all([
-        fetchAllCashReconciliations(),
-        fetchDailySummaries().catch(() => [] as CashTrackItem[]),
+        fetchAllCashReconciliations(selectedPhysicalStoreId),
+        fetchDailySummaries(selectedPhysicalStoreId).catch(
+          () => [] as CashTrackItem[]
+        ),
       ]);
       setItems(refreshed);
       setDailySummaries(summaries);

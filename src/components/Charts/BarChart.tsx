@@ -17,7 +17,11 @@ import {
   ymdKeyFromDateString,
   compareRowDates,
   buildExpensesInOutSumByDate,
+  filterCashTrackBySummaryScope,
+  filterExpenseRowsBySummaryScope,
+  type SummaryScope,
 } from "../../utils/cashOnHandShared";
+import { useStore } from "../../context/StoreContext";
 
 type Row = {
   name: string;
@@ -27,7 +31,12 @@ type Row = {
   difference: number;
 };
 
-const BarChart: React.FC = () => {
+type BarChartProps = {
+  summaryScope?: SummaryScope;
+};
+
+const BarChart: React.FC<BarChartProps> = ({ summaryScope = "all" }) => {
+  const { selectedPhysicalStoreId } = useStore();
   const [data, setData] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -47,15 +56,21 @@ const BarChart: React.FC = () => {
     setLoading(true);
     setLoadError(null);
     Promise.all([
-      fetchDailySummaries(),
-      fetchAllExpenses().catch(() => []),
+      fetchDailySummaries(selectedPhysicalStoreId),
+      fetchAllExpenses(selectedPhysicalStoreId).catch(() => []),
     ])
       .then(([summaries, expenses]) => {
         const expenseRows = Array.isArray(expenses)
           ? (expenses as Record<string, unknown>[])
           : [];
-        const sumByDate = buildExpensesInOutSumByDate(expenseRows);
-        const sorted = [...summaries].sort(compareRowDates);
+        const expenseRowsScoped = filterExpenseRowsBySummaryScope(
+          expenseRows,
+          summaryScope
+        );
+        const sumByDate = buildExpensesInOutSumByDate(expenseRowsScoped);
+        const sorted = [
+          ...filterCashTrackBySummaryScope(summaries, summaryScope),
+        ].sort(compareRowDates);
         setData(
           sorted.map((row) => {
             const key = ymdKeyFromDateString(row.date);
@@ -77,7 +92,7 @@ const BarChart: React.FC = () => {
         )
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [summaryScope, selectedPhysicalStoreId]);
 
   const yTickFormatter = (v: number) => {
     const n = Number(v);

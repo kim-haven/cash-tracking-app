@@ -7,6 +7,7 @@ import Pagination from "../../components/Pagination";
 import { Eye } from "lucide-react";
 import { fetchDailySummaries, type CashTrackItem } from "../../api/cashTrackApi";
 import { fetchAllExpenses } from "../../api/expensesApi";
+import { useStore } from "../../context/StoreContext";
 import { formatUsShortDate } from "../../utils/usShortDate";
 
 /** Match cash-track / expense rows on calendar date (YYYY-MM-DD prefix). */
@@ -133,6 +134,7 @@ function applyDateViewMode(
 }
 
 const CashOnHand: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const navigate = useNavigate();
   const [items, setItems] = useState<CashTrackItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -165,8 +167,8 @@ const CashOnHand: React.FC = () => {
     setLoading(true);
     setLoadError(null);
     Promise.all([
-      fetchDailySummaries(),
-      fetchAllExpenses().catch(() => []),
+      fetchDailySummaries(selectedPhysicalStoreId),
+      fetchAllExpenses(selectedPhysicalStoreId).catch(() => []),
     ])
       .then(([summaries, expenses]) => {
         setItems(summaries);
@@ -182,7 +184,7 @@ const CashOnHand: React.FC = () => {
         )
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   const searchFiltered = useMemo(() => {
     const term = searchTerm.toLowerCase();

@@ -42,6 +42,68 @@ export function compareRowDates(a: CashTrackItem, b: CashTrackItem): number {
   return ka - kb;
 }
 
+function calendarKeyFromDate(d: Date): number {
+  return (
+    d.getFullYear() * 10_000 + (d.getMonth() + 1) * 100 + d.getDate()
+  );
+}
+
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/** Dashboard / analytics date range for cash-on-hand summaries. */
+export type SummaryScope = "daily" | "weekly" | "monthly" | "all";
+
+export function rowDateInSummaryScope(
+  dateStr: string,
+  scope: SummaryScope
+): boolean {
+  if (scope === "all") return true;
+  const k = calendarKeyFromRowDate(dateStr);
+  if (k === null) return false;
+  const now = new Date();
+  const todayKey = calendarKeyFromDate(now);
+
+  switch (scope) {
+    case "daily":
+      return k === todayKey;
+    case "weekly": {
+      const end = startOfDay(now);
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+      const minK = calendarKeyFromDate(start);
+      const maxK = calendarKeyFromDate(end);
+      return k >= minK && k <= maxK;
+    }
+    case "monthly": {
+      const firstThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const minK = calendarKeyFromDate(firstThisMonth);
+      return k >= minK && k <= todayKey;
+    }
+    default:
+      return true;
+  }
+}
+
+export function filterCashTrackBySummaryScope(
+  list: CashTrackItem[],
+  scope: SummaryScope
+): CashTrackItem[] {
+  if (scope === "all") return [...list];
+  return list.filter((row) => rowDateInSummaryScope(row.date, scope));
+}
+
+export function filterExpenseRowsBySummaryScope(
+  rows: Record<string, unknown>[],
+  scope: SummaryScope
+): Record<string, unknown>[] {
+  if (scope === "all") return [...rows];
+  return rows.filter((row) =>
+    rowDateInSummaryScope(String(row.date ?? ""), scope)
+  );
+}
+
 /** Per calendar day: sum of expense cash_in + cash_out (from Expenses API). */
 export function buildExpensesInOutSumByDate(
   expenseApiRows: Record<string, unknown>[]

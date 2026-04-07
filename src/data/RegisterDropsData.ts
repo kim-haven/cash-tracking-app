@@ -1,5 +1,6 @@
 export type RegisterDropItem = {
   id: number;
+  storeId?: number;
   date: string;
   register: string;
   timeStart: string;

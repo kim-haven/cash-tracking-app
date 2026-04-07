@@ -31,7 +31,6 @@ temp/
 coverage/
 
 # Editor directories and files
-.vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
@@ -45,4 +44,3 @@ coverage/
 *.tsbuildinfo
 config.bat
 
-.env

@@ -5,6 +5,12 @@ import {
 } from "../../api/cashTrackApi";
 import { fetchAllExpenses } from "../../api/expensesApi";
 import { formatUsShortDate } from "../../utils/usShortDate";
+import {
+  filterCashTrackBySummaryScope,
+  filterExpenseRowsBySummaryScope,
+  type SummaryScope,
+} from "../../utils/cashOnHandShared";
+import { useStore } from "../../context/StoreContext";
 
 function ymdKeyFromDateString(dateStr: string): string | null {
   const iso = String(dateStr ?? "").match(/^(\d{4}-\d{2}-\d{2})/);
@@ -63,7 +69,12 @@ type DataItem = {
   deposit: number;
 };
 
-const GraphChart: React.FC = () => {
+type GraphChartProps = {
+  summaryScope?: SummaryScope;
+};
+
+const GraphChart: React.FC<GraphChartProps> = ({ summaryScope = "all" }) => {
+  const { selectedPhysicalStoreId } = useStore();
   const [data, setData] = useState<DataItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -74,15 +85,21 @@ const GraphChart: React.FC = () => {
     setLoading(true);
     setLoadError(null);
     Promise.all([
-      fetchDailySummaries(),
-      fetchAllExpenses().catch(() => []),
+      fetchDailySummaries(selectedPhysicalStoreId),
+      fetchAllExpenses(selectedPhysicalStoreId).catch(() => []),
     ])
       .then(([summaries, expenses]) => {
         const expenseRows = Array.isArray(expenses)
           ? (expenses as Record<string, unknown>[])
           : [];
-        const sumByDate = buildExpensesInOutSumByDate(expenseRows);
-        const sorted = [...summaries].sort(compareRowDates);
+        const expenseRowsScoped = filterExpenseRowsBySummaryScope(
+          expenseRows,
+          summaryScope
+        );
+        const sumByDate = buildExpensesInOutSumByDate(expenseRowsScoped);
+        const sorted = [
+          ...filterCashTrackBySummaryScope(summaries, summaryScope),
+        ].sort(compareRowDates);
         setData(
           sorted.map((row) => {
             const key = ymdKeyFromDateString(row.date);
@@ -102,7 +119,7 @@ const GraphChart: React.FC = () => {
         )
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [summaryScope, selectedPhysicalStoreId]);
 
   const cashFmt = useMemo(
     () =>
