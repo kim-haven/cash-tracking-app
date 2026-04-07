@@ -15,6 +15,8 @@ import {
   updateRegisterDrop,
 } from "../../api/registerDropsApi";
 import { todayDateInputMax } from "../../utils/usShortDate";
+import { useStore } from "../../context/StoreContext";
+import { resolveStoreIdForWrite } from "../../utils/storeScope";
 
 type FormState = {
   date: string;
@@ -43,6 +45,7 @@ function emptyForm(): FormState {
 type ToastState = { variant: "success" | "error"; message: string } | null;
 
 const RegisterDrops: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const [items, setItems] = useState<RegisterDropItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -86,20 +89,20 @@ const RegisterDrops: React.FC = () => {
   const refreshList = useCallback(async () => {
     setLoadError(null);
     try {
-      const rows = await fetchAllRegisterDrops();
+      const rows = await fetchAllRegisterDrops(selectedPhysicalStoreId);
       setItems(rows);
     } catch (err: unknown) {
       setLoadError(
         err instanceof Error ? err.message : "Failed to load register drops"
       );
     }
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    fetchAllRegisterDrops()
+    fetchAllRegisterDrops(selectedPhysicalStoreId)
       .then((rows) => {
         if (!cancelled) setItems(rows);
       })
@@ -116,7 +119,7 @@ const RegisterDrops: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   useEffect(() => {
     if (toast === null) return;
@@ -218,7 +221,18 @@ const RegisterDrops: React.FC = () => {
     }
 
     const notesTrim = editForm.notes.trim();
+    const storeId = resolveStoreIdForWrite(
+      editRow.storeId,
+      selectedPhysicalStoreId
+    );
+    if (storeId === null) {
+      setEditError(
+        "Select a specific store in the header to edit register drops."
+      );
+      return;
+    }
     const payload = {
+      store_id: storeId,
       date: editForm.date,
       register,
       time_start: editForm.timeStart,
@@ -310,7 +324,15 @@ const RegisterDrops: React.FC = () => {
     }
 
     const notesTrim = form.notes.trim();
+    const storeId = resolveStoreIdForWrite(undefined, selectedPhysicalStoreId);
+    if (storeId === null) {
+      setSubmitError(
+        "Select a specific store in the header to add register drops."
+      );
+      return;
+    }
     const payload = {
+      store_id: storeId,
       date: form.date,
       register,
       time_start: form.timeStart,

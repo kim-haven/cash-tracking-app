@@ -13,6 +13,8 @@ import {
   fetchAllCashlessAtmEntries,
   updateCashlessAtmEntry,
 } from "../../api/cashlessAtmApi";
+import { useStore } from "../../context/StoreContext";
+import { resolveStoreIdForWrite } from "../../utils/storeScope";
 
 function emptyForm(): CashlessAtmFormFields {
   return {
@@ -32,6 +34,7 @@ function emptyForm(): CashlessAtmFormFields {
 type ToastState = { variant: "success" | "error"; message: string } | null;
 
 const CashlessATM: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const [items, setItems] = useState<CashlessATMItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -62,7 +65,10 @@ const CashlessATM: React.FC = () => {
   const refreshList = useCallback(async () => {
     setLoadError(null);
     try {
-      const rows = await fetchAllCashlessAtmEntries();
+      const rows = await fetchAllCashlessAtmEntries(
+        undefined,
+        selectedPhysicalStoreId
+      );
       setItems(rows);
     } catch (err: unknown) {
       setLoadError(
@@ -71,13 +77,13 @@ const CashlessATM: React.FC = () => {
           : "Failed to load cashless ATM entries"
       );
     }
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    fetchAllCashlessAtmEntries()
+    fetchAllCashlessAtmEntries(undefined, selectedPhysicalStoreId)
       .then((rows) => {
         if (!cancelled) setItems(rows);
       })
@@ -96,7 +102,7 @@ const CashlessATM: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   useEffect(() => {
     if (toast === null) return;
@@ -140,7 +146,14 @@ const CashlessATM: React.FC = () => {
     setAddError(null);
     setAddSubmitting(true);
     try {
-      const payload = buildCashlessAtmPayloadFromForm(form);
+      const storeId = resolveStoreIdForWrite(undefined, selectedPhysicalStoreId);
+      if (storeId === null) {
+        setAddError(
+          "Select a specific store in the header to add cashless ATM entries."
+        );
+        return;
+      }
+      const payload = buildCashlessAtmPayloadFromForm(form, storeId);
       await createCashlessAtmEntry(payload);
       setToast({
         variant: "success",
@@ -165,7 +178,17 @@ const CashlessATM: React.FC = () => {
     setEditError(null);
     setEditSubmitting(true);
     try {
-      const payload = buildCashlessAtmPayloadFromForm(editForm);
+      const storeId = resolveStoreIdForWrite(
+        editRow.storeId,
+        selectedPhysicalStoreId
+      );
+      if (storeId === null) {
+        setEditError(
+          "Select a specific store in the header to edit cashless ATM entries."
+        );
+        return;
+      }
+      const payload = buildCashlessAtmPayloadFromForm(editForm, storeId);
       await updateCashlessAtmEntry(editRow.id, payload);
       setToast({ variant: "success", message: "Entry updated successfully." });
       setEditOpen(false);

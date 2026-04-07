@@ -1,16 +1,20 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
+  SUMMARY_OPTIONS,
+  useSummaryScope,
+} from "../context/SummaryScopeContext";
+import {
   LayoutDashboard,
   Users,
   Settings,
   Wallet,
-  Calculator,
   CreditCard,
   Landmark,
   Receipt,
   Gift,
   Shield,
+  ShieldCheck,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -39,20 +43,31 @@ type SidebarEntry = SidebarLinkEntry | SidebarGroupEntry;
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
+  const { summaryScope, setSummaryScope } = useSummaryScope();
+  const [summaryDropdownOpen, setSummaryDropdownOpen] = useState(false);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
   const navLinkBase =
     "flex items-center gap-3 px-4 py-3 rounded-lg transition font-medium";
-  const [isCashDeskOpen, setIsCashDeskOpen] = useState(false);
-  const [cashDeskForm, setCashDeskForm] = useState({
-    cash1000: "",
-    cash500: "",
-    cash100: "",
-    cash50: "",
-    posTerminalSales: "",
-    posRefunds: "",
-    posCashBack: "",
-    tips: "",
-    notes: "",
-  });
+
+  const selectedSummaryLabel =
+    SUMMARY_OPTIONS.find((o) => o.scope === summaryScope)?.label ??
+    "All data summaries";
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        summaryRef.current &&
+        !summaryRef.current.contains(event.target as Node)
+      ) {
+        setSummaryDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const groups: SidebarEntry[] = useMemo(
     () => [
@@ -137,16 +152,75 @@ const Sidebar: React.FC = () => {
   }, [openGroup]);
 
   return (
-    <>
-      <div className="bg-gray-900 text-gray-300 h-screen shadow-xl border-r border-gray-800 flex flex-col">
+    <div className="bg-gray-900 text-gray-300 h-screen shadow-xl border-r border-gray-800 flex flex-col">
       {/* Header */}
       <div className="p-6 text-white text-xl font-bold flex items-center gap-3 shrink-0">
         <Shield size={20} />
         <span>Admin Panel</span>
       </div>
 
+      <div className="shrink-0 px-3 pb-3 pt-1">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+          Summaries
+        </p>
+        <div ref={summaryRef} className="relative z-40">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setSummaryDropdownOpen((prev) => !prev)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setSummaryDropdownOpen((prev) => !prev);
+              }
+            }}
+            className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-600 bg-gray-800/90 px-3 py-2 text-sm text-gray-200 hover:bg-gray-800"
+          >
+            <span className="min-w-0 flex-1 truncate font-medium">
+              {selectedSummaryLabel}
+            </span>
+            <ChevronDown size={16} className="shrink-0 text-gray-400" />
+          </div>
+
+          {summaryDropdownOpen && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-y-auto rounded-md border border-gray-600 bg-gray-800 shadow-lg">
+              {SUMMARY_OPTIONS.map((opt) => (
+                <React.Fragment key={opt.scope}>
+                  {opt.scope === "all" && (
+                    <div className="my-1 border-t border-gray-700" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSummaryScope(opt.scope);
+                      setSummaryDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-sm transition hover:bg-gray-700 ${
+                      summaryScope === opt.scope
+                        ? "bg-gray-700 font-semibold text-white"
+                        : ""
+                    } ${
+                      opt.scope === "all"
+                        ? "font-medium text-blue-400"
+                        : "text-gray-200"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div
+        className="shrink-0 border-t border-gray-700"
+        aria-hidden
+      />
+
       {/* Scrollable nav */}
-      <div className="flex-1 overflow-y-auto px-3 pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-3">
         <nav className="flex flex-col gap-2">
           {groups.map((entry) => {
             if (entry.kind === "link") {
@@ -239,7 +313,7 @@ const Sidebar: React.FC = () => {
                       key={item.name}
                       to={item.path}
                       className={({ isActive }) =>
-                        `${navLinkBase} py-2 ${
+                        `${navLinkBase} py-2 text-base ${
                           isActive
                             ? "text-green-500 font-semibold"
                             : "text-white hover:text-green-300"
@@ -253,121 +327,32 @@ const Sidebar: React.FC = () => {
               </div>
             );
           })}
-
-          <button
-            type="button"
-            onClick={() => setIsCashDeskOpen(true)}
-            className="cursor-pointer mt-2 w-full rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-3 text-left text-emerald-100 shadow-sm transition-all hover:bg-emerald-500/25 hover:shadow-md active:scale-[0.99]"
-          >
-            <span className="flex items-center gap-3 text-sm font-semibold">
-              <Calculator size={18} />
-              Cash Desk
-            </span>
-            <span className="mt-1 block text-xs text-emerald-200/80">
-              Open cash entry form
-            </span>
-          </button>
         </nav>
       </div>
-      </div>
 
-      {isCashDeskOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800">Cash Desk Entry</h3>
-              <button
-                type="button"
-                onClick={() => setIsCashDeskOpen(false)}
-                className="rounded-md px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <input
-                type="number"
-                placeholder="1000 denomination amount"
-                value={cashDeskForm.cash1000}
-                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, cash1000: e.target.value }))}
-              />
-              <input
-                type="number"
-                placeholder="500 denomination amount"
-                value={cashDeskForm.cash500}
-                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, cash500: e.target.value }))}
-              />
-              <input
-                type="number"
-                placeholder="100 denomination amount"
-                value={cashDeskForm.cash100}
-                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, cash100: e.target.value }))}
-              />
-              <input
-                type="number"
-                placeholder="50 denomination amount"
-                value={cashDeskForm.cash50}
-                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, cash50: e.target.value }))}
-              />
-              <input
-                type="number"
-                placeholder="POS terminal sales"
-                value={cashDeskForm.posTerminalSales}
-                onChange={(e) =>
-                  setCashDeskForm((prev) => ({ ...prev, posTerminalSales: e.target.value }))
-                }
-              />
-              <input
-                type="number"
-                placeholder="POS refunds"
-                value={cashDeskForm.posRefunds}
-                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, posRefunds: e.target.value }))}
-              />
-              <input
-                type="number"
-                placeholder="POS cash back"
-                value={cashDeskForm.posCashBack}
-                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, posCashBack: e.target.value }))}
-              />
-              <input
-                type="number"
-                placeholder="Tips"
-                value={cashDeskForm.tips}
-                onChange={(e) => setCashDeskForm((prev) => ({ ...prev, tips: e.target.value }))}
-              />
-            </div>
-
-            <textarea
-              className="mt-4 w-full"
-              rows={3}
-              placeholder="Notes"
-              value={cashDeskForm.notes}
-              onChange={(e) => setCashDeskForm((prev) => ({ ...prev, notes: e.target.value }))}
-            />
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsCashDeskOpen(false)}
-                className="rounded-lg bg-gray-200 px-4 py-2 text-sm hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCashDeskOpen(false);
-                }}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-              >
-                Save
-              </button>
-            </div>
+      <div className="shrink-0 border-t border-gray-800 px-3 pb-5 pt-4">
+        <div
+          className="pointer-events-none flex w-full cursor-default select-none items-center gap-3 rounded-xl border border-emerald-500/35 bg-gradient-to-br from-emerald-500/20 to-emerald-900/30 px-3 py-3 text-left shadow-sm ring-1 ring-emerald-400/20"
+          role="status"
+          aria-label="Signed in as John Doe, administrator"
+        >
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/30"
+            aria-hidden
+          >
+            <ShieldCheck className="h-5 w-5" strokeWidth={2} />
+          </div>
+          <div className="min-w-0 flex flex-col justify-center gap-0.5 leading-tight">
+            <span className="truncate text-sm font-semibold text-emerald-50">
+              John Doe
+            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/95">
+              Administrator
+            </span>
           </div>
         </div>
-      ) : null}
-    </>
+      </div>
+    </div>
   );
 };
 

@@ -1,7 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { fetchDailySummaries } from "../../api/cashTrackApi";
+import {
+  filterCashTrackBySummaryScope,
+  type SummaryScope,
+} from "../../utils/cashOnHandShared";
+import { useStore } from "../../context/StoreContext";
 
-const DepositWidget: React.FC = () => {
+type Props = {
+  summaryScope?: SummaryScope;
+};
+
+const DepositWidget: React.FC<Props> = ({ summaryScope = "all" }) => {
+  const { selectedPhysicalStoreId } = useStore();
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,9 +30,10 @@ const DepositWidget: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchDailySummaries()
+    fetchDailySummaries(selectedPhysicalStoreId)
       .then((rows) => {
-        const sum = rows.reduce(
+        const scoped = filterCashTrackBySummaryScope(rows, summaryScope);
+        const sum = scoped.reduce(
           (acc, r) => acc + Number(r.deposit ?? 0),
           0
         );
@@ -32,7 +43,7 @@ const DepositWidget: React.FC = () => {
         setError(err instanceof Error ? err.message : "Failed to load")
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [summaryScope, selectedPhysicalStoreId]);
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">

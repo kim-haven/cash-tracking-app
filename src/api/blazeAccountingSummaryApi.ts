@@ -1,4 +1,6 @@
 import { buildApiUrl } from "../config/apiBase";
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam } from "./storeQuery";
 import type { BlazeSummaryItem } from "../data/BlazeSummaryData";
 
 /** Row from GET /api/blaze-accounting-summaries (Laravel / MySQL snake_case). */
@@ -251,14 +253,16 @@ export function mapBlazeAccountingSummaryApiRow(
 }
 
 export async function fetchBlazeAccountingSummariesPage(
-  page: number
+  page: number,
+  storeId?: number | null
 ): Promise<BlazeAccountingSummariesPaginatedResponse | BlazeAccountingSummaryApiRow[]> {
   const url = new URL(
     buildApiUrl("/api/blaze-accounting-summaries"),
     window.location.origin
   );
   url.searchParams.set("page", String(page));
-  const res = await fetch(url.toString(), { credentials: "include" });
+  applyStoreIdParam(url, storeId ?? null);
+  const res = await authorizedFetch(url.toString(), { credentials: "include" });
   if (!res.ok) {
     throw new Error(`Blaze accounting summaries request failed (${res.status})`);
   }
@@ -267,10 +271,10 @@ export async function fetchBlazeAccountingSummariesPage(
   >;
 }
 
-export async function fetchAllBlazeAccountingSummaries(): Promise<
-  BlazeSummaryItem[]
-> {
-  const first = await fetchBlazeAccountingSummariesPage(1);
+export async function fetchAllBlazeAccountingSummaries(
+  storeId?: number | null
+): Promise<BlazeSummaryItem[]> {
+  const first = await fetchBlazeAccountingSummariesPage(1, storeId);
   if (Array.isArray(first)) {
     return first.map(mapBlazeAccountingSummaryApiRow);
   }
@@ -279,7 +283,7 @@ export async function fetchAllBlazeAccountingSummaries(): Promise<
   if (lastPage > 1) {
     const rest = await Promise.all(
       Array.from({ length: lastPage - 1 }, (_, i) =>
-        fetchBlazeAccountingSummariesPage(i + 2)
+        fetchBlazeAccountingSummariesPage(i + 2, storeId)
       )
     );
     for (const chunk of rest) {
