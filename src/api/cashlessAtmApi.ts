@@ -1,4 +1,6 @@
 import { buildApiUrl } from "../config/apiBase";
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam } from "./storeQuery";
 import type { CashlessATMItem } from "../data/CashlessATMData";
 
 /**
@@ -70,6 +72,10 @@ export function mapCashlessAtmApiRow(row: CashlessAtmEntryApiRow): CashlessATMIt
   );
   return {
     id: row.id,
+    storeId:
+      (row as { store_id?: number }).store_id != null
+        ? Number((row as { store_id?: number }).store_id)
+        : undefined,
     date: formatApiDate(raw),
     dateValue,
     employee: row.employee ?? "",
@@ -102,15 +108,17 @@ function applyIndexFilters(
 
 export async function fetchCashlessAtmEntriesPage(
   page: number,
-  filters?: CashlessAtmIndexFilters
+  filters?: CashlessAtmIndexFilters,
+  storeId?: number | null
 ): Promise<CashlessAtmPaginatedResponse | CashlessAtmEntryApiRow[]> {
   const url = new URL(
     buildApiUrl("/api/cashless-atm-entries"),
     window.location.origin
   );
   url.searchParams.set("page", String(page));
+  applyStoreIdParam(url, storeId ?? null);
   applyIndexFilters(url, filters);
-  const res = await fetch(url.toString(), { credentials: "include" });
+  const res = await authorizedFetch(url.toString(), { credentials: "include" });
   if (!res.ok) {
     throw new Error(`Cashless ATM request failed (${res.status})`);
   }
@@ -121,9 +129,10 @@ export async function fetchCashlessAtmEntriesPage(
 
 /** Loads every page so client search/pagination work. */
 export async function fetchAllCashlessAtmEntries(
-  filters?: CashlessAtmIndexFilters
+  filters?: CashlessAtmIndexFilters,
+  storeId?: number | null
 ): Promise<CashlessATMItem[]> {
-  const first = await fetchCashlessAtmEntriesPage(1, filters);
+  const first = await fetchCashlessAtmEntriesPage(1, filters, storeId);
   if (Array.isArray(first)) {
     return first.map(mapCashlessAtmApiRow);
   }
@@ -132,7 +141,7 @@ export async function fetchAllCashlessAtmEntries(
   if (lastPage > 1) {
     const rest = await Promise.all(
       Array.from({ length: lastPage - 1 }, (_, i) =>
-        fetchCashlessAtmEntriesPage(i + 2, filters)
+        fetchCashlessAtmEntriesPage(i + 2, filters, storeId)
       )
     );
     for (const chunk of rest) {
@@ -163,6 +172,7 @@ export function aggregateDebitTotalSalesByDate(
 
 /** Body for POST / PUT/PATCH /api/cashless-atm-entries */
 export type CashlessAtmWritePayload = {
+  store_id: number;
   date: string;
   employee: string;
   terminal: string;
@@ -199,13 +209,15 @@ function parseRequiredNumber(raw: string, label: string): number {
 
 /** Validates string fields and builds API payload (throws with field message). */
 export function buildCashlessAtmPayloadFromForm(
-  form: CashlessAtmFormFields
+  form: CashlessAtmFormFields,
+  storeId: number
 ): CashlessAtmWritePayload {
   if (!form.date.trim()) throw new Error("Date is required.");
   if (!form.employee.trim()) throw new Error("Employee is required.");
   if (!form.terminal.trim()) throw new Error("Terminal is required.");
   const notesTrim = form.notes.trim();
   return {
+    store_id: storeId,
     date: form.date.trim(),
     employee: form.employee.trim(),
     terminal: form.terminal.trim(),
@@ -248,7 +260,7 @@ async function parseJsonError(res: Response, fallback: string): Promise<string> 
 export async function createCashlessAtmEntry(
   payload: CashlessAtmWritePayload
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl("/api/cashless-atm-entries"), {
+  const res = await authorizedFetch(buildApiUrl("/api/cashless-atm-entries"), {
     method: "POST",
     credentials: "include",
     headers: {
@@ -268,7 +280,7 @@ export async function updateCashlessAtmEntry(
   id: number,
   payload: CashlessAtmWritePayload
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl(`/api/cashless-atm-entries/${id}`), {
+  const res = await authorizedFetch(buildApiUrl(`/api/cashless-atm-entries/${id}`), {
     method: "PATCH",
     credentials: "include",
     headers: {
@@ -288,7 +300,7 @@ export async function deleteCashlessAtmEntry(
   id: number,
   deleteReason?: string
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl(`/api/cashless-atm-entries/${id}`), {
+  const res = await authorizedFetch(buildApiUrl(`/api/cashless-atm-entries/${id}`), {
     method: "DELETE",
     credentials: "include",
     headers: {

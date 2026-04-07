@@ -1,4 +1,6 @@
 import { buildApiUrl } from "../config/apiBase";
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam } from "./storeQuery";
 import type { DropSafeItem } from "../data/DropSafeData";
 
 export type DropSafeApiRow = {
@@ -23,6 +25,7 @@ type DropSafeListResponse = {
 
 /** Body for POST /api/drop-safes */
 export type DropSafeCreatePayload = {
+  store_id: number;
   bag_no: string;
   prepared_date: string;
   prepared_time: string;
@@ -71,9 +74,11 @@ function formatTimeHms(hms: string | null | undefined): string {
 }
 
 export function mapDropSafeApiRow(row: DropSafeApiRow): DropSafeItem {
+  const raw = row as DropSafeApiRow & { store_id?: number };
   const ct = row.courier_time;
   return {
     id: row.id,
+    storeId: raw.store_id != null ? Number(raw.store_id) : undefined,
     bagNumber: row.bag_no,
     datePrepared: formatYmdToDisplay(row.prepared_date),
     timePrepared: formatTimeHms(row.prepared_time),
@@ -137,7 +142,7 @@ export async function patchDropSafeCourier(
   id: number,
   payload: DropSafeCourierPatchPayload
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl(`/api/drop-safes/${id}`), {
+  const res = await authorizedFetch(buildApiUrl(`/api/drop-safes/${id}`), {
     method: "PATCH",
     credentials: "include",
     headers: {
@@ -164,8 +169,12 @@ export async function patchDropSafeCourier(
   return res.json();
 }
 
-export async function fetchDropSafes(): Promise<DropSafeItem[]> {
-  const res = await fetch(buildApiUrl("/api/drop-safes"), {
+export async function fetchDropSafes(
+  storeId?: number | null
+): Promise<DropSafeItem[]> {
+  const url = new URL(buildApiUrl("/api/drop-safes"), window.location.origin);
+  applyStoreIdParam(url, storeId ?? null);
+  const res = await authorizedFetch(url.toString(), {
     credentials: "include",
   });
   if (!res.ok) {
@@ -182,7 +191,7 @@ export async function fetchDropSafes(): Promise<DropSafeItem[]> {
 export async function createDropSafe(
   payload: DropSafeCreatePayload
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl("/api/drop-safes"), {
+  const res = await authorizedFetch(buildApiUrl("/api/drop-safes"), {
     method: "POST",
     credentials: "include",
     headers: {
@@ -213,7 +222,7 @@ export async function updateDropSafe(
   id: number,
   payload: DropSafeCreatePayload
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl(`/api/drop-safes/${id}`), {
+  const res = await authorizedFetch(buildApiUrl(`/api/drop-safes/${id}`), {
     method: "PATCH",
     credentials: "include",
     headers: {
@@ -244,7 +253,7 @@ export async function deleteDropSafe(
   id: number,
   deleteReason?: string
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl(`/api/drop-safes/${id}`), {
+  const res = await authorizedFetch(buildApiUrl(`/api/drop-safes/${id}`), {
     method: "DELETE",
     credentials: "include",
     headers: {
@@ -275,22 +284,26 @@ export async function deleteDropSafe(
   }
 }
 
-export function buildDropSafePayloadFromForm(form: {
-  bagNo: string;
-  preparedDate: string;
-  preparedTime: string;
-  preparedBy: string;
-  preparedAmount: string;
-  courierDate: string;
-  courierTime: string;
-  courierGivenBy: string;
-  courierReceivedBy: string;
-  courierAmount: string;
-}): DropSafeCreatePayload {
+export function buildDropSafePayloadFromForm(
+  storeId: number,
+  form: {
+    bagNo: string;
+    preparedDate: string;
+    preparedTime: string;
+    preparedBy: string;
+    preparedAmount: string;
+    courierDate: string;
+    courierTime: string;
+    courierGivenBy: string;
+    courierReceivedBy: string;
+    courierAmount: string;
+  }
+): DropSafeCreatePayload {
   const amt = Number.parseFloat(form.preparedAmount);
   const courierAmtStr = form.courierAmount.trim();
   const courierAmtParsed = Number.parseFloat(courierAmtStr);
   return {
+    store_id: storeId,
     bag_no: form.bagNo.trim(),
     prepared_date: form.preparedDate,
     prepared_time: timeInputToHms(form.preparedTime),

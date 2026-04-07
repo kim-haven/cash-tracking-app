@@ -1,5 +1,7 @@
-const API_BASE = import.meta.env.VITE_CASH_ON_HANDS_API;
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam, toRequestUrl } from "./storeQuery";
 
+const API_BASE = import.meta.env.VITE_CASH_ON_HANDS_API;
 
 export interface CashTrackItem {
   id: number;
@@ -28,8 +30,12 @@ async function parseJson(res: Response) {
   return res.json() as Promise<unknown>;
 }
 
-export async function fetchDailySummaries(): Promise<CashTrackItem[]> {
-  const res = await fetch(API_BASE);
+export async function fetchDailySummaries(
+  storeId?: number | null
+): Promise<CashTrackItem[]> {
+  const url = toRequestUrl(API_BASE);
+  applyStoreIdParam(url, storeId ?? null);
+  const res = await authorizedFetch(url.toString());
   const data = await parseJson(res);
   if (Array.isArray(data)) return data;
   const wrapped = data as { data?: CashTrackItem[] };
@@ -40,7 +46,7 @@ export async function updateDailySummary(
   id: number,
   data: Partial<CashTrackItem>
 ): Promise<CashTrackItem> {
-  const res = await fetch(`${API_BASE}/${id}`, {
+  const res = await authorizedFetch(`${API_BASE}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -53,7 +59,7 @@ export async function updateDailySummary(
 }
 
 export async function deleteDailySummary(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/${id}`, {
+  const res = await authorizedFetch(`${API_BASE}/${id}`, {
     method: "DELETE",
   });
   if (!res.ok) {

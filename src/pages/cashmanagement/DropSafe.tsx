@@ -15,6 +15,8 @@ import {
   updateDropSafe,
 } from "../../api/dropSafeApi";
 import { todayDateInputMax } from "../../utils/usShortDate";
+import { useStore } from "../../context/StoreContext";
+import { resolveStoreIdForWrite } from "../../utils/storeScope";
 
 type AddFormState = {
   bagNo: string;
@@ -65,6 +67,7 @@ function emptyAddForm(): AddFormState {
 type ToastState = { variant: "success" | "error"; message: string } | null;
 
 const DropSafe: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const [items, setItems] = useState<DropSafeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -107,20 +110,20 @@ const DropSafe: React.FC = () => {
   const refreshList = useCallback(async () => {
     setLoadError(null);
     try {
-      const rows = await fetchDropSafes();
+      const rows = await fetchDropSafes(selectedPhysicalStoreId);
       setItems(rows);
     } catch (err: unknown) {
       setLoadError(
         err instanceof Error ? err.message : "Failed to load drop safes"
       );
     }
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    fetchDropSafes()
+    fetchDropSafes(selectedPhysicalStoreId)
       .then((rows) => {
         if (!cancelled) setItems(rows);
       })
@@ -137,7 +140,7 @@ const DropSafe: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   useEffect(() => {
     if (toast === null) return;
@@ -199,7 +202,17 @@ const DropSafe: React.FC = () => {
       return;
     }
 
-    const payload = buildDropSafePayloadFromForm(editForm);
+    const storeId = resolveStoreIdForWrite(
+      editRow.storeId,
+      selectedPhysicalStoreId
+    );
+    if (storeId === null) {
+      setEditError(
+        "Select a specific store in the header to edit drop safe entries."
+      );
+      return;
+    }
+    const payload = buildDropSafePayloadFromForm(storeId, editForm);
     setEditSubmitting(true);
     try {
       await updateDropSafe(editRow.id, payload);
@@ -272,7 +285,14 @@ const DropSafe: React.FC = () => {
       return;
     }
 
-    const payload = buildDropSafePayloadFromForm(addForm);
+    const storeId = resolveStoreIdForWrite(undefined, selectedPhysicalStoreId);
+    if (storeId === null) {
+      setAddError(
+        "Select a specific store in the header to add drop safe entries."
+      );
+      return;
+    }
+    const payload = buildDropSafePayloadFromForm(storeId, addForm);
     setAddSubmitting(true);
     try {
       await createDropSafe(payload);

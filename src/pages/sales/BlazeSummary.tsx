@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { blazeSummaryColumnSpecs, formatBlazeSummaryDate } from "../../data/BlazeSummaryData";
 import type { BlazeSummaryItem } from "../../data/BlazeSummaryData";
 import { fetchAllBlazeAccountingSummaries } from "../../api/blazeAccountingSummaryApi";
+import { useStore } from "../../context/StoreContext";
 import TableLayout from "../../components/TableLayout";
 import type { Column } from "../../components/TableLayout";
 import SearchBar from "../../components/SearchBar";
@@ -26,6 +27,7 @@ function rowMatchesSearch(item: BlazeSummaryItem, term: string): boolean {
 }
 
 const BlazeSummary: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const [items, setItems] = useState<BlazeSummaryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ const BlazeSummary: React.FC = () => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    fetchAllBlazeAccountingSummaries()
+    fetchAllBlazeAccountingSummaries(selectedPhysicalStoreId)
       .then((rows) => {
         if (!cancelled) setItems(rows);
       })
@@ -57,7 +59,7 @@ const BlazeSummary: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   const filteredData = useMemo(
     () =>

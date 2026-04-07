@@ -1,6 +1,7 @@
 /** UI model for Cashless ATM Summary (mapped from API). */
 export type CashlessATMItem = {
   id: number;
+  storeId?: number;
   /** Display date (locale). */
   date: string;
   /** YYYY-MM-DD from API for filtering/search. */

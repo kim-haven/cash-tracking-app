@@ -1,5 +1,6 @@
 export type DropSafeItem = {
   id: number;
+  storeId?: number;
   bagNumber: string;
   datePrepared: string;
   timePrepared: string;

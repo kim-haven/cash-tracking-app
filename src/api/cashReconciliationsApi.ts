@@ -1,3 +1,6 @@
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam, toRequestUrl } from "./storeQuery";
+
 /** Matches `Route::apiResource('cash-reconciliations', …)` in `routes/api.php`. */
 const DEFAULT_BASE = "/api/cash-reconciliations";
 
@@ -9,7 +12,7 @@ const JSON_HEADERS = {
 const GET_HEADERS = { Accept: "application/json" } as const;
 
 /**
- * Path-only values must start with `/` or `fetch()` resolves relative to the
+ * Path-only values must start with `/` or `authorizedFetch()` resolves relative to the
  * current route (e.g. `/pos-reconcile` → wrong URL / 404).
  */
 function ensureRootRelativePath(path: string): string {
@@ -66,8 +69,8 @@ function resourceUrl(id?: number | string): string {
 }
 
 /**
- * Root-absolute URL for fetch(). Plain paths like `/api/...` must not be passed
- * to fetch() alone: without a leading `/`, the browser resolves them against
+ * Root-absolute URL for authorizedFetch(). Plain paths like `/api/...` must not be passed
+ * to authorizedFetch() alone: without a leading `/`, the browser resolves them against
  * `/pos-reconcile` and hits the SPA (404). `new URL('/api/…', origin)` fixes that.
  */
 function fetchHref(pathOrFullUrl: string): string {
@@ -82,6 +85,7 @@ function fetchHref(pathOrFullUrl: string): string {
 
 export type CashReconciliationItem = {
   id: number;
+  storeId?: number;
   date: string;
   controller: string;
   cashIn: number;
@@ -107,6 +111,7 @@ export function cashReconciliationRowToPayload(
   row: CashReconciliationItem
 ): CashReconciliationPayload {
   return {
+    storeId: row.storeId,
     date: row.date,
     controller: row.controller,
     cashIn: row.cashIn,
@@ -129,6 +134,12 @@ function normalizeCashReconciliation(raw: Record<string, unknown>): CashReconcil
     String(raw[k] ?? (alt ? raw[alt] : undefined) ?? "");
   return {
     id: Number(raw.id),
+    storeId:
+      raw.store_id != null
+        ? Number(raw.store_id)
+        : raw.storeId != null
+          ? Number(raw.storeId)
+          : undefined,
     date: str("date").slice(0, 10),
     controller: str("controller"),
     cashIn: num("cash_in", "cashIn"),
@@ -159,7 +170,7 @@ function normalizeCashReconciliation(raw: Record<string, unknown>): CashReconcil
 function toApiPayload(
   payload: CashReconciliationPayload
 ): Record<string, unknown> {
-  return {
+  const body: Record<string, unknown> = {
     date: payload.date,
     controller: payload.controller,
     cash_in: payload.cashIn,
@@ -173,6 +184,10 @@ function toApiPayload(
     cash_vs_cashless_atm_difference: payload.cashVsCashlessAtmDifference,
     reason_notes: payload.notes.trim() || null,
   };
+  if (payload.storeId != null && Number.isFinite(payload.storeId)) {
+    body.store_id = payload.storeId;
+  }
+  return body;
 }
 
 async function readErrorMessage(
@@ -205,10 +220,12 @@ async function parseResourceJson(res: Response): Promise<Record<string, unknown>
 }
 
 /** GET /api/cash-reconciliations — index (array or `{ data: [] }`). */
-export async function fetchAllCashReconciliations(): Promise<
-  CashReconciliationItem[]
-> {
-  const res = await fetch(fetchHref(resourceUrl()), { headers: GET_HEADERS });
+export async function fetchAllCashReconciliations(
+  storeId?: number | null
+): Promise<CashReconciliationItem[]> {
+  const url = toRequestUrl(fetchHref(resourceUrl()));
+  applyStoreIdParam(url, storeId ?? null);
+  const res = await authorizedFetch(url.toString(), { headers: GET_HEADERS });
   if (!res.ok) {
     throw new Error(
       await readErrorMessage(res, "Failed to fetch cash reconciliations")
@@ -225,7 +242,7 @@ export async function fetchAllCashReconciliations(): Promise<
 export async function fetchCashReconciliation(
   id: number
 ): Promise<CashReconciliationItem> {
-  const res = await fetch(fetchHref(resourceUrl(id)), {
+  const res = await authorizedFetch(fetchHref(resourceUrl(id)), {
     headers: GET_HEADERS,
   });
   if (!res.ok) {
@@ -242,7 +259,7 @@ export async function fetchCashReconciliation(
 export async function createCashReconciliation(
   payload: CashReconciliationPayload
 ): Promise<CashReconciliationItem> {
-  const res = await fetch(fetchHref(resourceUrl()), {
+  const res = await authorizedFetch(fetchHref(resourceUrl()), {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(toApiPayload(payload)),
@@ -288,8 +305,10 @@ export async function updateCashReconciliation(
     body.cash_vs_cashless_atm_difference = payload.cashVsCashlessAtmDifference;
   if (payload.notes !== undefined)
     body.reason_notes = payload.notes.trim() || null;
+  if (payload.storeId !== undefined && payload.storeId != null)
+    body.store_id = payload.storeId;
 
-  const res = await fetch(fetchHref(resourceUrl(id)), {
+  const res = await authorizedFetch(fetchHref(resourceUrl(id)), {
     method: "PATCH",
     headers: JSON_HEADERS,
     body: JSON.stringify(body),
@@ -314,7 +333,7 @@ export async function deleteCashReconciliation(id: number): Promise<void> {
   if (!Number.isFinite(Number(id))) {
     throw new Error("Invalid cash reconciliation id");
   }
-  const res = await fetch(fetchHref(resourceUrl(id)), {
+  const res = await authorizedFetch(fetchHref(resourceUrl(id)), {
     method: "DELETE",
     headers: GET_HEADERS,
   });

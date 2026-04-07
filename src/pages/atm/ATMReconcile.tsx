@@ -15,6 +15,7 @@ import TableLayout from "../../components/TableLayout";
 import type { Column } from "../../components/TableLayout";
 import SearchBar from "../../components/SearchBar";
 import Pagination from "../../components/Pagination";
+import { useStore } from "../../context/StoreContext";
 
 const PER_PAGE = 50;
 
@@ -95,6 +96,7 @@ function rowMatchesSearch(
 }
 
 const CashlessATMReconcile: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const [rows, setRows] = useState<CashlessAtmReconciliationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -124,8 +126,8 @@ const CashlessATMReconcile: React.FC = () => {
 
     void (async () => {
       const results = await Promise.allSettled([
-        fetchAllBlazeAccountingSummaries(),
-        fetchAllCashlessAtmEntries(),
+        fetchAllBlazeAccountingSummaries(selectedPhysicalStoreId),
+        fetchAllCashlessAtmEntries(undefined, selectedPhysicalStoreId),
       ]);
       if (cancelled) return;
 
@@ -162,14 +164,15 @@ const CashlessATMReconcile: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   const loadPage = useCallback(async (page: number) => {
     setLoadError(null);
     try {
       const { rows: data, meta } = await fetchCashlessAtmReconciliation(
         page,
-        PER_PAGE
+        PER_PAGE,
+        selectedPhysicalStoreId
       );
       setRows(data);
       setLastPage(meta.last_page);
@@ -182,7 +185,7 @@ const CashlessATMReconcile: React.FC = () => {
       );
       setRows([]);
     }
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   useEffect(() => {
     let cancelled = false;

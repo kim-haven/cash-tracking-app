@@ -1,3 +1,6 @@
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam, toRequestUrl } from "./storeQuery";
+
 const BASE_URL = import.meta.env.VITE_TIPS_API as string;
 
 export type TipItem = {
@@ -13,6 +16,8 @@ export type TipItem = {
   debit_tips: number;
   total: number;
   note: string;
+  /** Physical store (from API `store_id`). */
+  storeId?: number;
 };
 
 type TipPayload = Omit<TipItem, "id">;
@@ -24,6 +29,12 @@ function normalizeTip(raw: Record<string, unknown>): TipItem {
     String(raw[k] ?? (alt ? raw[alt] : undefined) ?? "");
   return {
     id: Number(raw.id),
+    storeId:
+      raw.store_id != null
+        ? Number(raw.store_id)
+        : raw.storeId != null
+          ? Number(raw.storeId)
+          : undefined,
     initials: str("initials"),
     cash_tip_amount: num("cash_tip_amount", "cashTipAmount"),
     end_of_pay_period_total: num(
@@ -52,8 +63,10 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
 }
 
 /** GET /api/tips — list (handles plain array or { data: [] }). */
-export async function fetchAllTips(): Promise<TipItem[]> {
-  const res = await fetch(BASE_URL);
+export async function fetchAllTips(storeId?: number | null): Promise<TipItem[]> {
+  const url = toRequestUrl(BASE_URL);
+  applyStoreIdParam(url, storeId ?? null);
+  const res = await authorizedFetch(url.toString());
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Failed to fetch tips"));
   }
@@ -64,7 +77,7 @@ export async function fetchAllTips(): Promise<TipItem[]> {
 
 /** GET /api/tips/{id} */
 export async function fetchTip(id: number): Promise<TipItem> {
-  const res = await fetch(`${BASE_URL}/${id}`);
+  const res = await authorizedFetch(`${BASE_URL}/${id}`);
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Failed to fetch tip"));
   }
@@ -74,8 +87,10 @@ export async function fetchTip(id: number): Promise<TipItem> {
 }
 
 /** POST /api/tips */
-export async function createTip(payload: TipPayload): Promise<TipItem> {
-  const res = await fetch(BASE_URL, {
+export async function createTip(
+  payload: TipPayload & { store_id: number }
+): Promise<TipItem> {
+  const res = await authorizedFetch(BASE_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -91,9 +106,9 @@ export async function createTip(payload: TipPayload): Promise<TipItem> {
 /** PUT /api/tips/{id} */
 export async function updateTip(
   id: number,
-  payload: Partial<TipPayload>
+  payload: Partial<TipPayload> & { store_id: number }
 ): Promise<TipItem> {
-  const res = await fetch(`${BASE_URL}/${id}`, {
+  const res = await authorizedFetch(`${BASE_URL}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -108,7 +123,7 @@ export async function updateTip(
 
 /** DELETE /api/tips/{id} */
 export async function deleteTip(id: number): Promise<void> {
-  const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
+  const res = await authorizedFetch(`${BASE_URL}/${id}`, { method: "DELETE" });
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Failed to delete tip"));
   }
@@ -116,7 +131,7 @@ export async function deleteTip(id: number): Promise<void> {
 
 /** GET /api/tips/template — triggers browser download (CSV/XLSX per server). */
 export async function downloadTipsTemplate(): Promise<void> {
-  const res = await fetch(`${BASE_URL}/template`);
+  const res = await authorizedFetch(`${BASE_URL}/template`);
   if (!res.ok) {
     throw new Error(await readErrorMessage(res, "Failed to download template"));
   }
