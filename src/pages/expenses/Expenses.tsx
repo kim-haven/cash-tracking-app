@@ -15,9 +15,12 @@ import {
   todayDateInputMax,
   toDateInputValue,
 } from "../../utils/usShortDate";
+import { useStore } from "../../context/StoreContext";
+import { resolveStoreIdForWrite } from "../../utils/storeScope";
 
 interface ExpenseItem {
   id: number;
+  store_id?: number;
   date: string;
   paid_by: string;
   pay_to: string;
@@ -44,6 +47,7 @@ function emptyExpenseForm() {
 }
 
 const Expenses: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const [items, setItems] = useState<ExpenseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -73,9 +77,9 @@ const Expenses: React.FC = () => {
     setLoading(true);
     setLoadError(null);
 
-    fetchAllExpenses()
+    fetchAllExpenses(selectedPhysicalStoreId)
       .then((rows) => {
-        if (!cancelled) setItems(rows);
+        if (!cancelled) setItems(rows as ExpenseItem[]);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -91,7 +95,7 @@ const Expenses: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   // FILTER
   const filteredData = items.filter((item) => {
@@ -159,7 +163,7 @@ const Expenses: React.FC = () => {
     try {
       await deleteExpense(deleteTargetId);
       setDeleteTargetId(null);
-      const refreshed = await fetchAllExpenses();
+      const refreshed = await fetchAllExpenses(selectedPhysicalStoreId);
       setItems(refreshed);
     } catch (err: unknown) {
       setDeleteError(
@@ -251,8 +255,21 @@ const Expenses: React.FC = () => {
       return;
     }
 
+    const rowStore =
+      editingId !== null
+        ? items.find((r) => r.id === editingId)?.store_id
+        : undefined;
+    const storeId = resolveStoreIdForWrite(rowStore, selectedPhysicalStoreId);
+    if (storeId === null) {
+      setSubmitError(
+        "Select a specific store in the header to add or edit expenses."
+      );
+      return;
+    }
+
     const payload = {
       ...form,
+      store_id: storeId,
       cash_in: Number(form.cash_in || 0),
       cash_out: Number(form.cash_out || 0),
     };
@@ -269,7 +286,7 @@ const Expenses: React.FC = () => {
       closeExpenseModal();
       setForm(emptyExpenseForm());
 
-      const refreshed = await fetchAllExpenses();
+      const refreshed = await fetchAllExpenses(selectedPhysicalStoreId);
       setItems(refreshed);
     } catch (err: unknown) {
       setSubmitError(

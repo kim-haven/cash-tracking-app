@@ -1,4 +1,6 @@
 import { buildApiUrl } from "../config/apiBase";
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam } from "./storeQuery";
 import type { CashlessAtmReconciliationItem } from "../data/ATMReconcileData";
 
 export type CashlessAtmReconciliationApiRow = {
@@ -61,8 +63,9 @@ export async function fetchCashlessAtmReconciliation(
   );
   url.searchParams.set("page", String(Math.max(1, page)));
   url.searchParams.set("per_page", String(safePer));
+  applyStoreIdParam(url, storeId ?? null);
 
-  const res = await fetch(url.toString(), { credentials: "include" });
+  const res = await authorizedFetch(url.toString(), { credentials: "include" });
   if (!res.ok) {
     throw new Error(`Cashless ATM reconciliation failed (${res.status})`);
   }

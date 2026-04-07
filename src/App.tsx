@@ -1,7 +1,9 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
 import UpdateChecker from "./components/UpdateChecker";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Controllers from "./pages/Controllers";
 import Settings from "./pages/Settings";
@@ -22,29 +24,33 @@ const App: React.FC = () => {
       {/* 🔥 AUTO UPDATE COMPONENT */}
       <UpdateChecker />
       <Routes>
-        <Route element={<Layout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-          <Route path="/cash-on-hand" element={<CashTrack />} />
-          <Route path="/register-drops" element={<RegisterDrops />} />
-          <Route path="/drop-safe" element={<DropSafe />} />
-          <Route path="/change-bank" element={<ChangeBank />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/cash-on-hand" element={<CashTrack />} />
+            <Route path="/register-drops" element={<RegisterDrops />} />
+            <Route path="/drop-safe" element={<DropSafe />} />
+            <Route path="/change-bank" element={<ChangeBank />} />
 
-          <Route path="/pos-reconcile" element={<POSReconcile />} />
-          <Route path="/blaze-summary" element={<BlazeSummary />} />
+            <Route path="/pos-reconcile" element={<POSReconcile />} />
+            <Route path="/blaze-summary" element={<BlazeSummary />} />
 
-          <Route path="/cashless-atm" element={<CashlessATM />} />
-          <Route path="/atm-reconcile" element={<ATMReconcile />} />
+            <Route path="/cashless-atm" element={<CashlessATM />} />
+            <Route path="/atm-reconcile" element={<ATMReconcile />} />
 
-          <Route path="/expenses" element={<Expenses />} />
+            <Route path="/expenses" element={<Expenses />} />
 
-          <Route path="/tips" element={<Tips />} />
+            <Route path="/tips" element={<Tips />} />
 
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/users" element={<Controllers />} />
-          <Route path="/settings" element={<Settings />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/users" element={<Controllers />} />
+            <Route path="/settings" element={<Settings />} />
+
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
         </Route>
-
-        <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>
   );

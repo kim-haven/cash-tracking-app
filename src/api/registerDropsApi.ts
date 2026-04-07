@@ -1,4 +1,6 @@
 import { buildApiUrl } from "../config/apiBase";
+import { authorizedFetch } from "./authorizedFetch";
+import { applyStoreIdParam } from "./storeQuery";
 import type { RegisterDropItem } from "../data/RegisterDropsData";
 
 export type RegisterDropApiRow = {
@@ -25,6 +27,7 @@ export type RegisterDropsPaginatedResponse = {
 
 /** Body for POST /api/register-drops */
 export type RegisterDropCreatePayload = {
+  store_id: number;
   date: string;
   register: string;
   time_start: string;
@@ -60,8 +63,10 @@ function formatTimeHms(hms: string | null | undefined): string {
 }
 
 export function mapRegisterDropApiToItem(row: RegisterDropApiRow): RegisterDropItem {
+  const raw = row as RegisterDropApiRow & { store_id?: number };
   return {
     id: row.id,
+    storeId: raw.store_id != null ? Number(raw.store_id) : undefined,
     date: formatApiDate(row.date),
     register: row.register,
     timeStart: formatTimeHms(row.time_start),
@@ -82,6 +87,7 @@ export function mapRegisterDropApiToItem(row: RegisterDropApiRow): RegisterDropI
 }
 
 export type RegisterDropUpdatePayload = {
+  store_id?: number;
   date: string;
   register: string;
   time_start: string;
@@ -93,11 +99,13 @@ export type RegisterDropUpdatePayload = {
 };
 
 export async function fetchRegisterDropsPage(
-  page: number
+  page: number,
+  storeId?: number | null
 ): Promise<RegisterDropsPaginatedResponse> {
   const url = new URL(buildApiUrl("/api/register-drops"), window.location.origin);
   url.searchParams.set("page", String(page));
-  const res = await fetch(url.toString(), { credentials: "include" });
+  applyStoreIdParam(url, storeId ?? null);
+  const res = await authorizedFetch(url.toString(), { credentials: "include" });
   if (!res.ok) {
     throw new Error(`Register drops request failed (${res.status})`);
   }
@@ -105,14 +113,16 @@ export async function fetchRegisterDropsPage(
 }
 
 /** Loads every page so client search/pagination work without extra query params. */
-export async function fetchAllRegisterDrops(): Promise<RegisterDropItem[]> {
-  const first = await fetchRegisterDropsPage(1);
+export async function fetchAllRegisterDrops(
+  storeId?: number | null
+): Promise<RegisterDropItem[]> {
+  const first = await fetchRegisterDropsPage(1, storeId);
   const lastPage = first.last_page ?? 1;
   let rows = [...first.data];
   if (lastPage > 1) {
     const rest = await Promise.all(
       Array.from({ length: lastPage - 1 }, (_, i) =>
-        fetchRegisterDropsPage(i + 2)
+        fetchRegisterDropsPage(i + 2, storeId)
       )
     );
     for (const chunk of rest) {
@@ -125,7 +135,7 @@ export async function fetchAllRegisterDrops(): Promise<RegisterDropItem[]> {
 export async function createRegisterDrop(
   payload: RegisterDropCreatePayload
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl("/api/register-drops"), {
+  const res = await authorizedFetch(buildApiUrl("/api/register-drops"), {
     method: "POST",
     credentials: "include",
     headers: {
@@ -156,7 +166,7 @@ export async function updateRegisterDrop(
   id: number,
   payload: RegisterDropUpdatePayload
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl(`/api/register-drops/${id}`), {
+  const res = await authorizedFetch(buildApiUrl(`/api/register-drops/${id}`), {
     method: "PUT",
     credentials: "include",
     headers: {
@@ -187,7 +197,7 @@ export async function deleteRegisterDrop(
   id: number,
   deleteReason?: string
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl(`/api/register-drops/${id}`), {
+  const res = await authorizedFetch(buildApiUrl(`/api/register-drops/${id}`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -223,7 +233,7 @@ export async function addRegisterDropTimeOut(
   id: number,
   timeOut: string
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl("/api/register-drops/add-time-out"), {
+  const res = await authorizedFetch(buildApiUrl("/api/register-drops/add-time-out"), {
     method: "POST",
     credentials: "include",
     headers: {
@@ -269,7 +279,7 @@ export async function bulkRegisterDropTimeOut(
   ids: number[],
   timeOut: string
 ): Promise<unknown> {
-  const res = await fetch(buildApiUrl("/api/register-drops/bulk-time-out-update"), {
+  const res = await authorizedFetch(buildApiUrl("/api/register-drops/bulk-time-out-update"), {
     method: "POST",
     credentials: "include",
     headers: {

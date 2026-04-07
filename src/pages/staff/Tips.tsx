@@ -17,6 +17,8 @@ import {
   downloadTipsTemplate,
   type TipItem,
 } from "../../api/tipsApi";
+import { useStore } from "../../context/StoreContext";
+import { resolveStoreIdForWrite } from "../../utils/storeScope";
 
 type TipFormState = {
   initials: string;
@@ -371,6 +373,7 @@ function tipComponentsSum(row: TipItem): number {
 }
 
 const Tips: React.FC = () => {
+  const { selectedPhysicalStoreId } = useStore();
   const [items, setItems] = useState<TipItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -413,7 +416,7 @@ const Tips: React.FC = () => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    fetchAllTips()
+    fetchAllTips(selectedPhysicalStoreId)
       .then((rows) => {
         if (!cancelled) setItems(rows);
       })
@@ -430,7 +433,7 @@ const Tips: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedPhysicalStoreId]);
 
   useEffect(() => {
     migrateLegacyPayoutStorage();
@@ -603,7 +606,7 @@ const Tips: React.FC = () => {
         }
         return null;
       });
-      const refreshed = await fetchAllTips();
+      const refreshed = await fetchAllTips(selectedPhysicalStoreId);
       setItems(refreshed);
     } catch (err: unknown) {
       setDeleteError(
@@ -626,23 +629,34 @@ const Tips: React.FC = () => {
       return;
     }
 
-    const payload = buildTipPayload(
+    const base = buildTipPayload(
       form,
       items,
       editingId,
       payoutZeroedTipIds,
       payoutGlobalCheckpoint
     );
+    const rowStore =
+      editingId !== null
+        ? items.find((r) => r.id === editingId)?.storeId
+        : undefined;
+    const storeId = resolveStoreIdForWrite(rowStore, selectedPhysicalStoreId);
+    if (storeId === null) {
+      setSubmitError(
+        "Select a specific store in the header to add or edit tips."
+      );
+      return;
+    }
     try {
       setSubmitting(true);
       if (editingId !== null) {
-        await updateTip(editingId, payload);
+        await updateTip(editingId, { ...base, store_id: storeId });
       } else {
-        await createTip(payload);
+        await createTip({ ...base, store_id: storeId });
       }
       closeTipModal();
       setForm(emptyTipForm());
-      const refreshed = await fetchAllTips();
+      const refreshed = await fetchAllTips(selectedPhysicalStoreId);
       setItems(refreshed);
     } catch (err: unknown) {
       setSubmitError(
