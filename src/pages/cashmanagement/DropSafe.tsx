@@ -15,6 +15,7 @@ import {
   updateDropSafe,
 } from "../../api/dropSafeApi";
 import { todayDateInputMax } from "../../utils/usShortDate";
+import { matchesTableSearch } from "../../utils/tableSearch";
 import { useStore } from "../../context/StoreContext";
 import { resolveStoreIdForWrite } from "../../utils/storeScope";
 
@@ -349,14 +350,17 @@ const DropSafe: React.FC = () => {
   const filteredData = items.filter((item) => {
     const term = searchTerm.toLowerCase();
     return (
-      item.bagNumber.toLowerCase().includes(term) ||
-      item.datePrepared.toLowerCase().includes(term) ||
-      item.timePrepared.toLowerCase().includes(term) ||
-      item.preparedBy.toLowerCase().includes(term) ||
-      item.givenBy.toLowerCase().includes(term) ||
-      item.receivedBy.toLowerCase().includes(term) ||
-      item.dateGiven.toLowerCase().includes(term) ||
-      item.timeGiven.toLowerCase().includes(term) ||
+      matchesTableSearch(
+        searchTerm,
+        item.bagNumber,
+        item.datePrepared,
+        item.timePrepared,
+        item.preparedBy,
+        item.givenBy,
+        item.receivedBy,
+        item.dateGiven,
+        item.timeGiven
+      ) ||
       String(item.amountPrepared).includes(term) ||
       String(item.amountReceived).includes(term) ||
       String(item.id).includes(term)
@@ -493,7 +497,7 @@ const DropSafe: React.FC = () => {
       )}
 
       <div className="flex flex-col gap-3 pb-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="shrink-0 text-lg font-semibold text-gray-700">
+        <h2 className="shrink-0 text-lg font-semibold text-gray-700 dark:text-gray-100">
           Drop Safe
         </h2>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">

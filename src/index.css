@@ -1,22 +1,38 @@
 /* ✅ Tailwind Core */
 @import "tailwindcss";
 
-/* ✅ Custom Theme Variables */
+/* Class-based dark mode (toggle `class="dark"` on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ✅ Custom Theme Variables — light defaults; dark overrides below */
 :root {
   --white-bg: #f6f8fa;
-  --dark-bg: #091a31;
+  --dark-bg: #020617;
   --base-black: #213547;
   --base-blue: #3498db;
   --link-blue: #646cff;
   --link-hover-blue: #747bff;
   --base-yellow: #f4c55b;
 
+  /* Surfaces (used for charts / optional semantic styling) */
+  --surface-page: #f9fafb;
+  --surface-card: #ffffff;
+  --surface-muted: #f3f4f6;
+  --surface-table-header: #f9fafb;
+  --surface-table-row-alt: #f9fafb;
+  --surface-chart: #f3f4f6;
+  --border-default: #e5e7eb;
+  --border-strong: #d1d5db;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+
   font-family: Nunito, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color: var(--base-black);
-  background-color: #f9fafb; /* Tailwind gray-50 */
+  background-color: var(--surface-page);
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -71,6 +87,14 @@ textarea:focus {
   border-radius: 10px;
 }
 
+html.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
 /* ❌ REMOVED (important)
    - table styles
    - th/td overrides
@@ -78,8 +102,73 @@ textarea:focus {
    - conflicting backgrounds
 */
 
-/* Optional Dark Mode Base */
-.dark {
-  background-color: var(--dark-bg);
-  color: #f9fafb;
+/* Dark mode: html class + readable surfaces */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark {
+  --surface-page: #020617;
+  --surface-card: #0f172a;
+  --surface-muted: #1e293b;
+  --surface-table-header: #1e293b;
+  --surface-table-row-alt: #1e293b;
+  --surface-chart: #0f172a;
+  --border-default: #334155;
+  --border-strong: #475569;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+}
+
+html.dark body {
+  background-color: var(--surface-page);
+  color: var(--text-primary);
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+html.dark input:disabled,
+html.dark select:disabled,
+html.dark textarea:disabled {
+  opacity: 0.85;
+}
+
+/* Login / register card: always light inputs (ignore global dark input styles) */
+html.dark .login-auth-panel {
+  color-scheme: light;
+}
+
+html.dark .login-auth-panel input,
+html.dark .login-auth-panel select,
+html.dark .login-auth-panel textarea {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: #0f172a !important;
+}
+
+html.dark .login-auth-panel input::placeholder,
+html.dark .login-auth-panel textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Modals that should render as light surfaces while the app is in dark mode */
+html.dark .light-form-modal {
+  color-scheme: light;
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+html.dark .light-form-modal input,
+html.dark .light-form-modal select,
+html.dark .light-form-modal textarea {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
 }

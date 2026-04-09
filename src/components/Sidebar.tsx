@@ -4,6 +4,8 @@ import {
   SUMMARY_OPTIONS,
   useSummaryScope,
 } from "../context/SummaryScopeContext";
+import { useAuth } from "../context/AuthContext";
+import { formatUserRoleLabel } from "../utils/userRoleLabel";
 import {
   LayoutDashboard,
   Users,
@@ -43,6 +45,7 @@ type SidebarEntry = SidebarLinkEntry | SidebarGroupEntry;
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
+  const { user } = useAuth();
   const { summaryScope, setSummaryScope } = useSummaryScope();
   const [summaryDropdownOpen, setSummaryDropdownOpen] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -119,7 +122,7 @@ const Sidebar: React.FC = () => {
         items: [{ kind: "link", name: "Tips", path: "/tips" }],
       },
 
-      { kind: "link", name: "Controllers", path: "/users", icon: Users },
+      { kind: "link", name: "User Management", path: "/users", icon: Users },
       { kind: "link", name: "Settings", path: "/settings", icon: Settings },
     ],
     []
@@ -152,7 +155,7 @@ const Sidebar: React.FC = () => {
   }, [openGroup]);
 
   return (
-    <div className="bg-gray-900 text-gray-300 h-screen shadow-xl border-r border-gray-800 flex flex-col">
+    <div className="flex h-screen flex-col border-r border-gray-800 bg-gray-900 text-gray-300 shadow-xl">
       {/* Header */}
       <div className="p-6 text-white text-xl font-bold flex items-center gap-3 shrink-0">
         <Shield size={20} />
@@ -334,7 +337,7 @@ const Sidebar: React.FC = () => {
         <div
           className="pointer-events-none flex w-full cursor-default select-none items-center gap-3 rounded-xl border border-emerald-500/35 bg-gradient-to-br from-emerald-500/20 to-emerald-900/30 px-3 py-3 text-left shadow-sm ring-1 ring-emerald-400/20"
           role="status"
-          aria-label="Signed in as John Doe, administrator"
+          aria-label={`Signed in as ${user?.name?.trim() || "unknown"}, ${user?.role ? formatUserRoleLabel(user.role) : "unknown role"}`}
         >
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/30"
@@ -344,10 +347,10 @@ const Sidebar: React.FC = () => {
           </div>
           <div className="min-w-0 flex flex-col justify-center gap-0.5 leading-tight">
             <span className="truncate text-sm font-semibold text-emerald-50">
-              John Doe
+              {user?.name?.trim() || "—"}
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/95">
-              Administrator
+            <span className="text-[11px] font-semibold capitalize tracking-wide text-emerald-300/95">
+              {user?.role ? formatUserRoleLabel(user.role) : "—"}
             </span>
           </div>
         </div>
