@@ -45,4 +45,3 @@ coverage/
 *.tsbuildinfo
 config.bat
 
-.env

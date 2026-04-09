@@ -7,6 +7,15 @@ export type AuthUser = {
   role: string;
 };
 
+/** Coerce API payloads (Laravel may send `id` as string in JSON). */
+export function normalizeAuthUser(raw: AuthUser): AuthUser {
+  return {
+    ...raw,
+    id: Number(raw.id),
+    role: String(raw.role ?? ""),
+  };
+}
+
 type LoginSuccess = {
   message: string;
   token: string;
@@ -17,10 +26,26 @@ type MeResponse = {
   data: AuthUser;
 };
 
+function messageFromAuthErrorBody(data: {
+  message?: string;
+  errors?: Record<string, string[]>;
+}): string {
+  if (data.errors) {
+    const parts = Object.values(data.errors).flat();
+    if (parts.length) return parts.join(" ");
+  }
+  if (typeof data.message === "string") return data.message;
+  return "";
+}
+
 async function readErrorMessage(res: Response): Promise<string> {
   try {
-    const data = (await res.json()) as { message?: string };
-    if (typeof data.message === "string") return data.message;
+    const data = (await res.json()) as {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+    const fromBody = messageFromAuthErrorBody(data);
+    if (fromBody) return fromBody;
   } catch {
     /* ignore */
   }
@@ -39,13 +64,47 @@ export async function loginRequest(
     },
     body: JSON.stringify({ username, password }),
   });
-  const data = (await res.json()) as LoginSuccess & { message?: string };
+  type ErrBody = { message?: string; errors?: Record<string, string[]> };
+  const data = (await res.json()) as LoginSuccess & ErrBody;
   if (!res.ok) {
-    throw new Error(
-      typeof data.message === "string" ? data.message : "Login failed."
-    );
+    const msg = messageFromAuthErrorBody(data) || "Login failed.";
+    throw new Error(msg);
   }
-  return data;
+  return {
+    ...data,
+    user: normalizeAuthUser(data.user),
+  };
+}
+
+export async function registerRequest(
+  username: string,
+  email: string,
+  password: string,
+  passwordConfirmation: string
+): Promise<LoginSuccess> {
+  const res = await fetch(buildApiUrl("/api/auth/register"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      username,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    }),
+  });
+  type ErrBody = { message?: string; errors?: Record<string, string[]> };
+  const data = (await res.json()) as LoginSuccess & ErrBody;
+  if (!res.ok) {
+    const msg = messageFromAuthErrorBody(data) || "Registration failed.";
+    throw new Error(msg);
+  }
+  return {
+    ...data,
+    user: normalizeAuthUser(data.user),
+  };
 }
 
 /** Revokes the token on the server. Ignores HTTP errors so the client can always clear local state. */
@@ -70,5 +129,5 @@ export async function fetchCurrentUser(token: string): Promise<AuthUser> {
     throw new Error(await readErrorMessage(res));
   }
   const data = (await res.json()) as MeResponse;
-  return data.data;
+  return normalizeAuthUser(data.data);
 }
