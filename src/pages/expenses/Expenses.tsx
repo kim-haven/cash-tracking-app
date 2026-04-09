@@ -17,6 +17,7 @@ import {
 } from "../../utils/usShortDate";
 import { useStore } from "../../context/StoreContext";
 import { resolveStoreIdForWrite } from "../../utils/storeScope";
+import { matchesTableSearch } from "../../utils/tableSearch";
 
 interface ExpenseItem {
   id: number;
@@ -98,16 +99,21 @@ const Expenses: React.FC = () => {
   }, [selectedPhysicalStoreId]);
 
   // FILTER
-  const filteredData = items.filter((item) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      item.date.toLowerCase().includes(term) ||
-      formatUsShortDate(item.date).toLowerCase().includes(term) ||
-      item.paid_by.toLowerCase().includes(term) ||
-      item.pay_to.toLowerCase().includes(term) ||
-      (item.description || "").toLowerCase().includes(term)
-    );
-  });
+  const filteredData = items.filter((item) =>
+    matchesTableSearch(
+      searchTerm,
+      item.date,
+      formatUsShortDate(item.date),
+      item.paid_by,
+      item.pay_to,
+      item.approved_by,
+      item.type,
+      item.description,
+      item.id,
+      item.cash_in,
+      item.cash_out
+    )
+  );
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -304,7 +310,7 @@ const Expenses: React.FC = () => {
   return (
     <div className="flex flex-col">
       <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="shrink-0 text-lg font-semibold text-gray-700">
+        <h2 className="shrink-0 text-lg font-semibold text-gray-700 dark:text-gray-100">
           Expenses
         </h2>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">

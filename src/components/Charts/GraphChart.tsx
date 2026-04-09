@@ -11,6 +11,7 @@ import {
   type SummaryScope,
 } from "../../utils/cashOnHandShared";
 import { useStore } from "../../context/StoreContext";
+import { useUserPreferences } from "../../context/UserPreferencesContext";
 
 function ymdKeyFromDateString(dateStr: string): string | null {
   const iso = String(dateStr ?? "").match(/^(\d{4}-\d{2}-\d{2})/);
@@ -74,6 +75,7 @@ type GraphChartProps = {
 };
 
 const GraphChart: React.FC<GraphChartProps> = ({ summaryScope = "all" }) => {
+  const { darkMode } = useUserPreferences();
   const { selectedPhysicalStoreId } = useStore();
   const [data, setData] = useState<DataItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,15 +181,23 @@ const GraphChart: React.FC<GraphChartProps> = ({ summaryScope = "all" }) => {
       .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
       .join(" ");
 
+  const gridStroke = darkMode ? "#334155" : "#E5E7EB";
+  const axisLabelFill = darkMode ? "#94a3b8" : "#6B7280";
+  const tooltipBg = darkMode ? "#1e293b" : "#ffffff";
+  const tooltipStroke = darkMode ? "#475569" : "#E5E7EB";
+  const tooltipSubtext = darkMode ? "#94a3b8" : "#6B7280";
+
   if (loadError) {
     return (
-      <div className="w-full h-full text-sm text-red-600">{loadError}</div>
+      <div className="h-full w-full text-sm text-red-600 dark:text-red-400">
+        {loadError}
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
+      <div className="flex h-full w-full items-center justify-center text-sm text-gray-500 dark:text-gray-400">
         Loading…
       </div>
     );
@@ -195,21 +205,21 @@ const GraphChart: React.FC<GraphChartProps> = ({ summaryScope = "all" }) => {
 
   if (data.length === 0) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
+      <div className="flex h-full w-full items-center justify-center text-sm text-gray-500 dark:text-gray-400">
         No cash-on-hand data yet
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full">
-      <div className="flex justify-between mb-2">
-        <h2 className="text-sm font-semibold text-gray-700">
+    <div className="h-full w-full">
+      <div className="mb-2 flex justify-between">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-100">
           Expenses vs deposit
         </h2>
-        <span className="text-xs text-gray-400">Daily</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500">Daily</span>
       </div>
-      <p className="text-xs text-gray-500 mb-3">
+      <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
         Shaded band is the dollar gap; hover a day for deposit − expenses.
       </p>
 
@@ -231,7 +241,7 @@ const GraphChart: React.FC<GraphChartProps> = ({ summaryScope = "all" }) => {
               x2={width - padding}
               y1={y}
               y2={y}
-              stroke="#E5E7EB"
+              stroke={gridStroke}
             />
           );
         })}
@@ -304,15 +314,15 @@ const GraphChart: React.FC<GraphChartProps> = ({ summaryScope = "all" }) => {
                     width={156}
                     height={48}
                     rx={6}
-                    fill="white"
-                    stroke="#E5E7EB"
+                    fill={tooltipBg}
+                    stroke={tooltipStroke}
                     strokeWidth={1}
                   />
                   <text
                     x={Math.min(width - 160, Math.max(8, cx - 78)) + 8}
                     y={Math.max(6, cy - 52) + 14}
                     fontSize="9"
-                    fill="#6B7280"
+                    fill={tooltipSubtext}
                   >
                     {row.label}
                   </text>
@@ -346,7 +356,7 @@ const GraphChart: React.FC<GraphChartProps> = ({ summaryScope = "all" }) => {
                 y={height - 8}
                 textAnchor="middle"
                 fontSize="9"
-                fill="#6B7280"
+                fill={axisLabelFill}
               >
                 {row.label}
               </text>
@@ -355,18 +365,18 @@ const GraphChart: React.FC<GraphChartProps> = ({ summaryScope = "all" }) => {
         })}
       </svg>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-gray-600">
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 bg-red-500 rounded-full" />
+          <span className="h-3 w-3 rounded-full bg-red-500" />
           Expenses
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 bg-green-600 rounded-full" />
+          <span className="h-3 w-3 rounded-full bg-green-600" />
           Deposit
         </div>
         <div className="flex items-center gap-1">
           <span
-            className="w-3 h-3 rounded-sm border border-gray-300"
+            className="w-3 h-3 rounded-sm border border-gray-300 dark:border-slate-600"
             style={{
               background:
                 "linear-gradient(180deg, rgba(191,219,254,0.8), rgba(254,202,202,0.7))",

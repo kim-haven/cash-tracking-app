@@ -14,7 +14,8 @@ import {
   formatTimeInputForBulkTimeOutApi,
   updateRegisterDrop,
 } from "../../api/registerDropsApi";
-import { todayDateInputMax } from "../../utils/usShortDate";
+import { formatUsShortDate, todayDateInputMax } from "../../utils/usShortDate";
+import { matchesTableSearch } from "../../utils/tableSearch";
 import { useStore } from "../../context/StoreContext";
 import { resolveStoreIdForWrite } from "../../utils/storeScope";
 
@@ -366,13 +367,17 @@ const RegisterDrops: React.FC = () => {
   const filteredData = items.filter((item) => {
     const term = searchTerm.toLowerCase();
     return (
-      item.date.toLowerCase().includes(term) ||
-      item.register.toLowerCase().includes(term) ||
-      item.timeStart.toLowerCase().includes(term) ||
-      item.timeEnd.toLowerCase().includes(term) ||
-      item.action.toLowerCase().includes(term) ||
-      item.initials.toLowerCase().includes(term) ||
-      item.notes.toLowerCase().includes(term) ||
+      matchesTableSearch(
+        searchTerm,
+        item.date,
+        formatUsShortDate(item.date),
+        item.register,
+        item.timeStart,
+        item.timeEnd,
+        item.action,
+        item.initials,
+        item.notes
+      ) ||
       String(item.cashIn).includes(term) ||
       String(item.id).includes(term)
     );
@@ -553,7 +558,7 @@ const RegisterDrops: React.FC = () => {
       )}
 
       <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="shrink-0 text-lg font-semibold text-gray-700">
+        <h2 className="shrink-0 text-lg font-semibold text-gray-700 dark:text-gray-100">
           Register Drops
         </h2>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
