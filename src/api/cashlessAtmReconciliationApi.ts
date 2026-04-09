@@ -4,6 +4,7 @@ import { applyStoreIdParam } from "./storeQuery";
 import type { CashlessAtmReconciliationItem } from "../data/ATMReconcileData";
 
 export type CashlessAtmReconciliationApiRow = {
+  store_id?: number | null;
   date: string;
   sum_of_debit_total_sales: string | number;
   sum_of_blaze_sales: string | number;
@@ -48,7 +49,8 @@ const MAX_PER_PAGE = 100;
 
 export async function fetchCashlessAtmReconciliation(
   page: number = 1,
-  perPage: number = DEFAULT_PER_PAGE
+  perPage: number = DEFAULT_PER_PAGE,
+  storeId?: number | null
 ): Promise<{
   rows: CashlessAtmReconciliationItem[];
   meta: CashlessAtmReconciliationMeta;

@@ -1,4 +1,6 @@
+import { buildApiUrl } from "../config/apiBase";
 import { endpoints } from "../api/endpoints";
+import { authorizedFetch } from "../api/authorizedFetch";
 import {
   createDropSafe,
   fetchDropSafes,
@@ -14,7 +16,7 @@ import {
 
 export const apiService = {
   getUsers: async () => {
-    const res = await fetch(endpoints.users);
+    const res = await authorizedFetch(buildApiUrl(endpoints.users));
     return res.json();
   },
   getStats: async () => {

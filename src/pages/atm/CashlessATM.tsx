@@ -15,6 +15,8 @@ import {
 } from "../../api/cashlessAtmApi";
 import { useStore } from "../../context/StoreContext";
 import { resolveStoreIdForWrite } from "../../utils/storeScope";
+import { formatUsShortDate } from "../../utils/usShortDate";
+import { matchesTableSearch } from "../../utils/tableSearch";
 
 function emptyForm(): CashlessAtmFormFields {
   return {
@@ -228,11 +230,15 @@ const CashlessATM: React.FC = () => {
   const filteredData = items.filter((item) => {
     const term = searchTerm.toLowerCase();
     return (
-      item.date.toLowerCase().includes(term) ||
-      item.dateValue.toLowerCase().includes(term) ||
-      item.employee.toLowerCase().includes(term) ||
-      item.terminal.toLowerCase().includes(term) ||
-      item.notes.toLowerCase().includes(term) ||
+      matchesTableSearch(
+        searchTerm,
+        item.date,
+        item.dateValue,
+        formatUsShortDate(item.date),
+        item.employee,
+        item.terminal,
+        item.notes
+      ) ||
       String(item.id).includes(term) ||
       String(item.totalSalesDifference).includes(term) ||
       String(item.cashbackDifference).includes(term)
@@ -508,7 +514,7 @@ const CashlessATM: React.FC = () => {
       )}
 
       <div className="flex flex-col gap-3 pb-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="shrink-0 text-lg font-semibold text-gray-700">
+        <h2 className="shrink-0 text-lg font-semibold text-gray-700 dark:text-gray-100">
           Cashless ATM Summary
         </h2>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
