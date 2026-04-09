@@ -46,19 +46,19 @@ const DepositWidget: React.FC<Props> = ({ summaryScope = "all" }) => {
   }, [summaryScope, selectedPhysicalStoreId]);
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-      <h3 className="text-sm text-gray-500">Deposit</h3>
+    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:shadow-black/20">
+      <h3 className="text-sm text-gray-500 dark:text-gray-400">Deposit</h3>
       {error ? (
-        <p className="text-sm text-red-600 mt-2">{error}</p>
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : loading ? (
-        <p className="mt-2 text-3xl font-bold text-gray-400">…</p>
+        <p className="mt-2 text-3xl font-bold text-gray-400 dark:text-gray-500">…</p>
       ) : (
-        <p className="mt-2 text-3xl font-bold text-green-600">
+        <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
           {cashFmt.format(total ?? 0)}
         </p>
       )}
-      <p className="text-xs text-green-600 mt-2">
-        Total deposit (daily summaries)
+      <p className="mt-2 text-xs text-green-600 dark:text-green-500/90">
+        Total deposit
       </p>
     </div>
   );

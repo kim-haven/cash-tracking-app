@@ -9,6 +9,7 @@ import { fetchDailySummaries, type CashTrackItem } from "../../api/cashTrackApi"
 import { fetchAllExpenses } from "../../api/expensesApi";
 import { useStore } from "../../context/StoreContext";
 import { formatUsShortDate } from "../../utils/usShortDate";
+import { matchesTableSearch } from "../../utils/tableSearch";
 
 /** Match cash-track / expense rows on calendar date (YYYY-MM-DD prefix). */
 function ymdKeyFromDateString(dateStr: string): string | null {
@@ -27,13 +28,7 @@ function expenseRowDateKey(e: Record<string, unknown>): string | null {
   return ymdKeyFromDateString(String(e.date ?? ""));
 }
 
-type DateViewMode =
-  | "all_earliest"
-  | "today"
-  | "all_latest"
-  | "last_week"
-  | "last_month"
-  | "last_3_months";
+type DateViewMode = "all_earliest" | "all_latest";
 
 /** Calendar day as YYYYMMDD for comparisons (local), from API date string. */
 function calendarKeyFromRowDate(dateStr: string): number | null {
@@ -51,16 +46,6 @@ function calendarKeyFromRowDate(dateStr: string): number | null {
   );
 }
 
-function calendarKeyFromDate(d: Date): number {
-  return (
-    d.getFullYear() * 10_000 + (d.getMonth() + 1) * 100 + d.getDate()
-  );
-}
-
-function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
 function compareRowDates(a: CashTrackItem, b: CashTrackItem): number {
   const ka = calendarKeyFromRowDate(a.date);
   const kb = calendarKeyFromRowDate(b.date);
@@ -74,56 +59,7 @@ function applyDateViewMode(
   list: CashTrackItem[],
   mode: DateViewMode
 ): CashTrackItem[] {
-  const now = new Date();
-  const todayKey = calendarKeyFromDate(now);
-
   switch (mode) {
-    case "today": {
-      return list
-        .filter((item) => calendarKeyFromRowDate(item.date) === todayKey)
-        .sort(compareRowDates);
-    }
-    case "last_week": {
-      const end = startOfDay(now);
-      const start = new Date(end);
-      start.setDate(start.getDate() - 6);
-      const minK = calendarKeyFromDate(start);
-      const maxK = calendarKeyFromDate(end);
-      return list
-        .filter((item) => {
-          const k = calendarKeyFromRowDate(item.date);
-          return k !== null && k >= minK && k <= maxK;
-        })
-        .sort(compareRowDates);
-    }
-    case "last_month": {
-      const firstThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastPrev = new Date(firstThisMonth.getTime() - 1);
-      const firstPrev = new Date(
-        lastPrev.getFullYear(),
-        lastPrev.getMonth(),
-        1
-      );
-      const minK = calendarKeyFromDate(firstPrev);
-      const maxK = calendarKeyFromDate(lastPrev);
-      return list
-        .filter((item) => {
-          const k = calendarKeyFromRowDate(item.date);
-          return k !== null && k >= minK && k <= maxK;
-        })
-        .sort(compareRowDates);
-    }
-    case "last_3_months": {
-      const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-      const minK = calendarKeyFromDate(start);
-      const maxK = todayKey;
-      return list
-        .filter((item) => {
-          const k = calendarKeyFromRowDate(item.date);
-          return k !== null && k >= minK && k <= maxK;
-        })
-        .sort(compareRowDates);
-    }
     case "all_earliest":
       return [...list].sort(compareRowDates);
     case "all_latest":
@@ -187,14 +123,15 @@ const CashOnHand: React.FC = () => {
   }, [selectedPhysicalStoreId]);
 
   const searchFiltered = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.date.toLowerCase().includes(term) ||
-        formatUsShortDate(item.date).toLowerCase().includes(term) ||
-        item.amController.toLowerCase().includes(term) ||
-        item.pmController.toLowerCase().includes(term) ||
-        item.courier.toLowerCase().includes(term)
+    return items.filter((item) =>
+      matchesTableSearch(
+        searchTerm,
+        item.date,
+        formatUsShortDate(item.date),
+        item.amController,
+        item.pmController,
+        item.courier
+      )
     );
   }, [items, searchTerm]);
 
@@ -298,18 +235,18 @@ const CashOnHand: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-gray-500 text-sm">Total Drops</h3>
-          <p className="text-2xl font-bold">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:shadow-black/20">
+          <h3 className="text-sm text-gray-500 dark:text-gray-400">Total Drops</h3>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {cashFmt.format(
               viewData.reduce((sum, i) => sum + Number(i.registerDrops ?? 0), 0)
             )}
           </p>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-gray-500 text-sm">Total Expenses</h3>
-          <p className="text-2xl font-bold text-red-500">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:shadow-black/20">
+          <h3 className="text-sm text-gray-500 dark:text-gray-400">Total Expenses</h3>
+          <p className="text-2xl font-bold text-red-500 dark:text-red-400">
             {cashFmt.format(
               viewData.reduce((acc, i) => {
                 const key = ymdKeyFromDateString(i.date);
@@ -320,9 +257,9 @@ const CashOnHand: React.FC = () => {
             )}
           </p>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-gray-500 text-sm">Total Deposit</h3>
-          <p className="text-2xl font-bold text-green-600">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:shadow-black/20">
+          <h3 className="text-sm text-gray-500 dark:text-gray-400">Total Deposit</h3>
+          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
             {cashFmt.format(
               viewData.reduce((sum, i) => sum + Number(i.deposit ?? 0), 0)
             )}
@@ -357,14 +294,6 @@ const CashOnHand: React.FC = () => {
           >
             <option value="all_earliest">Earliest</option>
             <option value="all_latest">Latest</option>
-            <option value="today">Today</option>
-            <option value="last_week">Last 7 days</option>
-            <option value="last_month">
-              Last calendar month
-            </option>
-            <option value="last_3_months">
-              Last 3 months
-            </option>
           </select>
         </label>
       </div>

@@ -16,6 +16,7 @@ import {
   type CashTrackItem,
 } from "../../api/cashTrackApi";
 import { formatUsShortDate, todayDateInputMax } from "../../utils/usShortDate";
+import { matchesTableSearch } from "../../utils/tableSearch";
 import { useStore } from "../../context/StoreContext";
 
 /** Match daily-summary rows on calendar date (YYYY-MM-DD prefix). Same as Cash on Hand. */
@@ -175,15 +176,15 @@ const POSReconcile: React.FC = () => {
   }, [dailySummaries]);
 
   const filteredData = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return items.filter((item) => {
-      return (
-        item.date.toLowerCase().includes(term) ||
-        formatUsShortDate(item.date).toLowerCase().includes(term) ||
-        item.controller.toLowerCase().includes(term) ||
-        (item.notes || "").toLowerCase().includes(term)
-      );
-    });
+    return items.filter((item) =>
+      matchesTableSearch(
+        searchTerm,
+        item.date,
+        formatUsShortDate(item.date),
+        item.controller,
+        item.notes
+      )
+    );
   }, [searchTerm, items]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
@@ -245,7 +246,7 @@ const POSReconcile: React.FC = () => {
         header: "Cash In",
         accessor: "cashIn",
         render: (v) => (
-          <span className="font-medium tabular-nums text-emerald-600">
+          <span className="font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
             {cashFmt.format(Number(v))}
           </span>
         ),
@@ -255,7 +256,7 @@ const POSReconcile: React.FC = () => {
         header: "Cash Refunds",
         accessor: "cashRefunds",
         render: (v) => (
-          <span className="font-medium tabular-nums text-red-600">
+          <span className="font-medium tabular-nums text-red-600 dark:text-red-400">
             {cashFmt.format(Number(v))}
           </span>
         ),
@@ -265,7 +266,7 @@ const POSReconcile: React.FC = () => {
         header: "Cashless ATM Cash Back",
         accessor: "cashlessAtmCashBack",
         render: (v) => (
-          <span className="font-medium tabular-nums text-gray-800">
+          <span className="font-medium tabular-nums text-gray-800 dark:text-white">
             {cashFmt.format(Number(v))}
           </span>
         ),
@@ -278,7 +279,7 @@ const POSReconcile: React.FC = () => {
           const computed = reportedCashCollectedComputed(row);
           return (
             <span
-              className="font-medium tabular-nums text-gray-800"
+              className="font-medium tabular-nums text-gray-800 dark:text-white"
               title="Cash In − Cash Refunds − Cashless ATM Cash Back"
             >
               {cashFmt.format(computed)}
@@ -295,7 +296,7 @@ const POSReconcile: React.FC = () => {
           const drops = key ? registerDropsByDate.get(key) ?? 0 : 0;
           return (
             <span
-              className="font-medium tabular-nums text-gray-800"
+              className="font-medium tabular-nums text-gray-800 dark:text-white"
               title="Register drops from daily summary (same date)"
             >
               {cashFmt.format(drops)}
@@ -313,10 +314,10 @@ const POSReconcile: React.FC = () => {
             <span
               className={`font-medium tabular-nums ${
                 diff < 0
-                  ? "text-red-600"
+                  ? "text-red-600 dark:text-red-400"
                   : diff > 0
-                    ? "text-emerald-600"
-                    : "text-gray-800"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-gray-800 dark:text-white"
               }`}
               title="Reported cash collected − cash collected (register drops)"
             >
@@ -330,7 +331,7 @@ const POSReconcile: React.FC = () => {
         header: "Credit Difference",
         accessor: "creditDifference",
         render: (v) => (
-          <span className="font-medium tabular-nums text-blue-600">
+          <span className="font-medium tabular-nums text-blue-600 dark:text-blue-400">
             {cashFmt.format(Number(v))}
           </span>
         ),
@@ -340,7 +341,7 @@ const POSReconcile: React.FC = () => {
         header: "Cashless ATM Difference",
         accessor: "cashlessAtmDifference",
         render: (v) => (
-          <span className="font-medium tabular-nums text-purple-600">
+          <span className="font-medium tabular-nums text-purple-600 dark:text-purple-400">
             {cashFmt.format(Number(v))}
           </span>
         ),
@@ -353,7 +354,7 @@ const POSReconcile: React.FC = () => {
           const v = cashVsCashlessAtmDifferenceComputed(row, registerDropsByDate);
           return (
             <span
-              className="font-bold tabular-nums text-gray-800"
+              className="font-bold tabular-nums text-gray-800 dark:text-white"
               title="Cash Difference − Cashless ATM Difference"
             >
               {cashFmt.format(v)}
@@ -372,7 +373,7 @@ const POSReconcile: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openNotesModal(row)}
-                className="cursor-pointer whitespace-nowrap rounded-md border border-dashed border-gray-300 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-100"
+                className="cursor-pointer whitespace-nowrap rounded-md border border-dashed border-gray-300 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-100 dark:border-slate-500 dark:bg-slate-800/80 dark:text-gray-200 dark:hover:border-slate-400 dark:hover:bg-slate-700/80"
                 title={`${text} — click to edit`}
               >
                 View Notes
@@ -383,7 +384,7 @@ const POSReconcile: React.FC = () => {
             <button
               type="button"
               onClick={() => openNotesModal(row)}
-              className="cursor-pointer whitespace-nowrap rounded-md border border-dashed border-gray-300 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-100"
+              className="cursor-pointer whitespace-nowrap rounded-md border border-dashed border-gray-300 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-100 dark:border-slate-500 dark:bg-slate-800/80 dark:text-gray-200 dark:hover:border-slate-400 dark:hover:bg-slate-700/80"
             >
               Add notes
             </button>
@@ -448,7 +449,7 @@ const POSReconcile: React.FC = () => {
   return (
     <div className="flex flex-col">
       <div className="flex min-w-0 flex-col gap-3 pb-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="min-w-0 max-w-full text-lg font-semibold text-gray-700 wrap-break-word">
+        <h2 className="min-w-0 max-w-full text-lg font-semibold text-gray-700 wrap-break-word dark:text-gray-100">
           POS Reconciliation
         </h2>
         <div className="flex min-w-0 w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3">
@@ -481,7 +482,7 @@ const POSReconcile: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="rounded-2xl border border-gray-200 bg-white py-12 text-center text-gray-500">
+        <div className="rounded-2xl border border-gray-200 bg-white py-12 text-center text-gray-500 dark:border-slate-600 dark:bg-slate-900/80 dark:text-gray-400">
           Loading…
         </div>
       ) : (
@@ -510,7 +511,7 @@ const POSReconcile: React.FC = () => {
           aria-modal="true"
           aria-labelledby="pos-notes-modal-title"
         >
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
+          <div className="light-form-modal w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
             <h2
               id="pos-notes-modal-title"
               className="text-lg font-semibold text-gray-800"
@@ -568,7 +569,7 @@ const POSReconcile: React.FC = () => {
           aria-modal="true"
           aria-labelledby="pos-reconcile-form-title"
         >
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+          <div className="light-form-modal max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
             <h2
               id="pos-reconcile-form-title"
               className="text-lg font-semibold text-gray-800"

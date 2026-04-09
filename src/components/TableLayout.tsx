@@ -129,26 +129,27 @@ function Table<T extends object>({
       dividerBeforeColIndices.push(acc);
     }
   }
-  const sectionDividerClass = "border-l-[3px] border-cyan-500";
+  const sectionDividerClass =
+    "border-l-[3px] border-cyan-500 dark:border-cyan-400";
 
   const tableClass =
     tableWidth === "stretch"
-      ? "w-full min-w-0 max-w-full text-sm text-gray-700 border-collapse table-auto"
-      : "w-full min-w-max text-sm text-gray-700 border-collapse table-auto";
+      ? "w-full min-w-0 max-w-full border-collapse text-sm text-gray-700 dark:text-gray-200 table-auto"
+      : "w-full min-w-max border-collapse text-sm text-gray-700 dark:text-gray-200 table-auto";
 
   return (
     <div
-      className={`max-w-full min-w-0 w-full overflow-x-auto overscroll-x-contain bg-white rounded-2xl border border-gray-200 shadow-md ${wrapperClassName ?? ""}`}
+      className={`max-w-full min-w-0 w-full overflow-x-auto overscroll-x-contain rounded-2xl border border-gray-200 bg-white shadow-md dark:border-slate-600/80 dark:bg-slate-900/90 dark:shadow-black/30 ${wrapperClassName ?? ""}`}
     >
       <table className={tableClass}>
-        <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
+        <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm dark:bg-slate-800/95 dark:shadow-slate-950/50">
           {groupsValid ? (
             <>
-              <tr className="border-b border-gray-200 bg-gray-100">
+              <tr className="border-b border-gray-200 bg-gray-100 dark:border-slate-600 dark:bg-slate-800">
                 {rowSelection && (
                   <th
                     rowSpan={2}
-                    className="w-12 border-b border-gray-200 bg-gray-100 px-3 py-3 align-middle"
+                    className="w-12 border-b border-gray-200 bg-gray-100 px-3 py-3 align-middle dark:border-slate-600 dark:bg-slate-800"
                   >
                     <input
                       ref={headerSelectRef}
@@ -166,7 +167,7 @@ function Table<T extends object>({
                     colSpan={group.colSpan}
                     scope="colgroup"
                     title={group.label.trim() ? group.label : undefined}
-                    className={`border-b border-gray-200 px-5 py-3 text-center text-sm font-semibold tracking-wide text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis ${
+                    className={`overflow-hidden text-ellipsis whitespace-nowrap border-b border-gray-200 px-5 py-3 text-center text-sm font-semibold tracking-wide text-gray-800 dark:border-slate-600 dark:text-gray-100 ${
                       gi > 0 ? sectionDividerClass : ""
                     } ${group.headerClassName ?? ""}`}
                   >
@@ -174,7 +175,7 @@ function Table<T extends object>({
                   </th>
                 ))}
               </tr>
-              <tr className="bg-gray-50">
+              <tr className="bg-gray-50 dark:bg-slate-800/90">
                 {columns.map((col, colIndex) => {
                   const wrapMultiline = headerUsesMultilineBreak(col.header);
                   const sectionEdge = dividerBeforeColIndices.includes(
@@ -186,7 +187,7 @@ function Table<T extends object>({
                       scope="col"
                       title={col.header}
                       aria-label={col.header}
-                      className={`px-5 py-4 align-top font-medium text-gray-600 uppercase tracking-wider ${
+                      className={`px-5 py-4 align-top text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400 ${
                         wrapMultiline ? "whitespace-normal" : "whitespace-nowrap"
                       } ${
                         col.align === "center"
@@ -203,13 +204,13 @@ function Table<T extends object>({
               </tr>
             </>
           ) : (
-            <tr>
+            <tr className="border-b border-gray-200 bg-gray-50 dark:border-slate-600 dark:bg-slate-800/95">
               {rowSelection && (
                 <th className="w-12 px-3 py-4 align-middle">
                   <input
                     ref={headerSelectRef}
                     type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-500 dark:bg-slate-900"
                     checked={rowSelection.headerChecked}
                     onChange={rowSelection.onToggleHeader}
                     aria-label="Select all rows on this page"
@@ -224,7 +225,7 @@ function Table<T extends object>({
                     scope="col"
                     title={col.header}
                     aria-label={col.header}
-                    className={`px-5 py-4 align-top font-medium text-gray-600 uppercase tracking-wider ${
+                    className={`px-5 py-4 align-top text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400 ${
                       wrapMultiline ? "whitespace-normal" : "whitespace-nowrap"
                     } ${
                       col.align === "center"
@@ -242,12 +243,12 @@ function Table<T extends object>({
           )}
         </thead>
 
-        <tbody>
+        <tbody className="divide-y divide-gray-100 dark:divide-slate-700/80">
           {data.length === 0 ? (
             <tr>
               <td
                 colSpan={colCount}
-                className="text-center py-6 text-gray-400 italic"
+                className="bg-white py-6 text-center italic text-gray-400 dark:bg-slate-900 dark:text-gray-500"
               >
                 {emptyMessage}
               </td>
@@ -257,14 +258,16 @@ function Table<T extends object>({
               <tr
                 key={getRowKey ? getRowKey(row, rowIndex) : rowIndex}
                 className={`transition-colors duration-200 ${
-                  rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-blue-50`}
+                  rowIndex % 2 === 0
+                    ? "bg-white dark:bg-slate-900/40"
+                    : "bg-gray-50 dark:bg-slate-800/40"
+                } hover:bg-blue-50 dark:hover:bg-slate-700/50`}
               >
                 {rowSelection && (
                   <td className="px-3 py-3 align-middle">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-500 dark:bg-slate-900"
                       checked={rowSelection.isRowSelected(row)}
                       onChange={() => rowSelection.onToggleRow(row)}
                       aria-label="Select row"
