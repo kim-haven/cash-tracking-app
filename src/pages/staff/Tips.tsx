@@ -19,6 +19,7 @@ import {
 } from "../../api/tipsApi";
 import { useStore } from "../../context/StoreContext";
 import { resolveStoreIdForWrite } from "../../utils/storeScope";
+import { matchesTableSearch } from "../../utils/tableSearch";
 
 type TipFormState = {
   initials: string;
@@ -237,6 +238,30 @@ function findLastRowInOrder(items: TipItem[]): TipItem | null {
   return best;
 }
 
+function itemsHaveTipOnDate(items: TipItem[], ymd: string): boolean {
+  return items.some((it) => ymdKeyFromDateString(it.date) === ymd);
+}
+
+/**
+ * The End of Pay Period control sits on the chronologically last row.
+ * When at least one tip is dated today, that row must be today’s last row.
+ * When there is no tip for today, the anchor stays on the last entered row
+ * (e.g. yesterday) so the button does not disappear for the new day.
+ */
+function isPayoutAnchorRow(
+  items: TipItem[],
+  row: TipItem,
+  last: TipItem | null
+): boolean {
+  if (last == null || row.id !== last.id) return false;
+  const today = todayYmdLocal();
+  if (itemsHaveTipOnDate(items, today)) {
+    const rowY = ymdKeyFromDateString(row.date);
+    return rowY === today;
+  }
+  return true;
+}
+
 function addOneCalendarDayYmd(ymd: string): string {
   const [y, m, d] = ymd.split("-").map(Number);
   const dt = new Date(y, m - 1, d);
@@ -448,13 +473,14 @@ const Tips: React.FC = () => {
   }, []);
 
   const filteredData = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.date.toLowerCase().includes(term) ||
-        formatUsShortDate(item.date).toLowerCase().includes(term) ||
-        item.initials.toLowerCase().includes(term) ||
-        (item.note || "").toLowerCase().includes(term)
+    return items.filter((item) =>
+      matchesTableSearch(
+        searchTerm,
+        item.date,
+        formatUsShortDate(item.date),
+        item.initials,
+        item.note
+      )
     );
   }, [items, searchTerm]);
 
@@ -511,7 +537,14 @@ const Tips: React.FC = () => {
     const last = findLastRowInOrder(items);
     if (!last) return;
     const dk = ymdKeyFromDateString(last.date);
-    if (!dk || dk !== todayYmdLocal()) return;
+    if (!dk) return;
+    const today = todayYmdLocal();
+    const hasTipsToday = itemsHaveTipOnDate(items, today);
+    if (hasTipsToday) {
+      if (dk !== today) return;
+    } else if (dk > today) {
+      return;
+    }
 
     const cleared = displayCashBalance(
       items,
@@ -705,18 +738,17 @@ const Tips: React.FC = () => {
         header: "End of Pay Period Total",
         accessor: "end_of_pay_period_total",
         render: (_v, row) => {
-          const today = todayYmdLocal();
           const last = findLastRowInOrder(items);
-          const isLastRowToday =
+          const showPayoutButton =
             last != null &&
-            row.id === last.id &&
-            ymdKeyFromDateString(row.date) === today;
+            isPayoutAnchorRow(items, row, last) &&
+            !payoutZeroedTipIds.has(last.id);
 
           const transferredForRow = payoutTransferredByTipId[row.id];
           if (transferredForRow !== undefined) {
             return (
               <span
-                className="font-semibold tabular-nums text-gray-900"
+                className="font-semibold tabular-nums text-gray-900 dark:text-white"
                 title="Amount transferred at payout for this row (kept for monitoring)"
               >
                 {cashFmt.format(transferredForRow)}
@@ -724,19 +756,24 @@ const Tips: React.FC = () => {
             );
           }
 
-          if (isLastRowToday && !payoutZeroedTipIds.has(last.id)) {
+          if (showPayoutButton) {
             const amount = displayCashBalance(
               items,
               last,
               payoutZeroedTipIds,
               payoutGlobalCheckpoint
             );
+            const noTipToday = !itemsHaveTipOnDate(items, todayYmdLocal());
             return (
               <button
                 type="button"
                 onClick={handlePayout}
                 aria-label="Payout"
-                title="Full running cash balance at payout (restarts after payout)"
+                title={
+                  noTipToday
+                    ? "Full running cash balance at payout — no tip entered for today yet; uses last entered row (restarts after payout)"
+                    : "Full running cash balance at payout (restarts after payout)"
+                }
                 className="min-w-22 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold tabular-nums text-white shadow-sm hover:bg-emerald-700"
               >
                 {cashFmt.format(amount)}
@@ -845,7 +882,7 @@ const Tips: React.FC = () => {
           const display = todaySum + tomorrowSum;
           return (
             <span
-              className="font-bold tabular-nums text-gray-800"
+              className="font-bold tabular-nums text-gray-800 dark:text-white"
               title="Cash + credit + ACH + debit for this date, plus the same for the next calendar day (same initials)"
             >
               {cashFmt.format(display)}
@@ -899,7 +936,7 @@ const Tips: React.FC = () => {
   return (
     <div className="flex flex-col">
       <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <h2 className="shrink-0 text-lg font-semibold text-gray-700">
+        <h2 className="shrink-0 text-lg font-semibold text-gray-700 dark:text-gray-100">
           Tips Summary
         </h2>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
